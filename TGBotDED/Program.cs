@@ -12,7 +12,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.2.2";
+var version = "0.2.3";
 string TokenTelegramAPI = "";
 string connStr = "";
 
