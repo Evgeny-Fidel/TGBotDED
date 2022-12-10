@@ -12,10 +12,12 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.2.3";
+var version = "0.2.4";
+var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
 
+bool Doki = false; // Включение/отключение функции сохранения файлов пользователя
 
 string DirectorySettings = $"{Environment.CurrentDirectory}/Settings";
 Directory.CreateDirectory(DirectorySettings);
@@ -56,6 +58,16 @@ if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
                 line = line.Replace("Pwd =", "");
                 pwd = line.Replace(" ", "");
             }
+            if (line.StartsWith("Autor ="))
+            {
+                line = line.Replace("Autor =", "");
+                autor = line.Replace(" ", "");
+            }
+            if (line.StartsWith("Save_Document ="))
+            {
+                line = line.Replace("Save_Document =", "");
+                Doki = Convert.ToBoolean(line.Replace(" ", ""));
+            }
         }
         connStr = $@"Server={server};Database={database};Uid={uid};Pwd={pwd};";
     }
@@ -70,7 +82,10 @@ else
         "Server = IP_ВАШЕЙ_БД\n" +
         "Database = ИМЯ_ВАШЕЙ_БД\n" +
         "Uid = ЛОГИН\n" +
-        "Pwd = ПАРОЛЬ");
+        "Pwd = ПАРОЛЬ\n\n" +
+        "———————————————————————————Telegram BOT————————————————————————————\n" +
+        "Autor = @evgeny_fidel\n" +
+        "Save_Document = false");
 }
 
 var botClient = new TelegramBotClient(TokenTelegramAPI);
@@ -452,7 +467,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         }
         if (message.Text.StartsWith("/info"))
         {
-            //try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
             string TextMes = "";
             string Username = "";
             string FirstName = "";
@@ -529,7 +544,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             }
             catch { }
             TextMes = $"{TextMes}\n\n" +
-                $"Разработчик: @evgeny_fidel\n" +
+                $"Разработчик: {autor}\n" +
                 $"Версия бота: {version}\n";
             await botClient.SendTextMessageAsync(message.Chat, TextMes, disableNotification: true);
             return;
@@ -1323,7 +1338,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
                 MySqlDataReader reader = command.ExecuteReader();
                 Text = $"БД Пользователей:\n" +
-                    $"ID|Usename|FirstName|LastName|SaveURL|SaveURLVal|TestMes\n\n";
+                    $"ID|Usename|FirstName|LastName|SaveURL|SaveURLVal|TestMes\n";
                 while (reader.Read())
                 {
                     string id = reader.GetString("id");
@@ -1349,7 +1364,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 command = new MySqlCommand(cmdsql, MySqlBase);
                 reader = command.ExecuteReader();
                 Text = $"{Text}\nБД Групп:\n" +
-                    $"ID|Title|Type|Market\n\n";
+                    $"ID|Title|Type|Market\n";
                 while (reader.Read())
                 {
                     string id = reader.GetString("id");
@@ -2221,47 +2236,58 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
 
 async Task HandleDocument(ITelegramBotClient botClient, Message message)
 {
-    if (message.Chat.Type == ChatType.Private)
+    if(Doki == true)
     {
-        await botClient.SendTextMessageAsync(message.Chat.Id, "Спасибо! Сохраню у себя на сервере 😋", disableNotification: true);
-    }
-    Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Файл |{message.Document.FileName}");
-    var fileInfo = await botClient.GetFileAsync(message.Document.FileId);
-    var filePath = fileInfo.FilePath;
-    string directoryDesctop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-    string directoryDesctopTGBot = $@"{directoryDesctop}/TGBotDED/BDUserFile";
-    Directory.CreateDirectory(directoryDesctopTGBot);
-    string directoryUsername = $@"{directoryDesctopTGBot}/{message.From.Id}";
-
-    Directory.CreateDirectory(directoryUsername);
-
-    message.Document.FileName = message.Document.FileName.Replace(" ", "_");
-    message.Document.FileName = message.Document.FileName.Replace("(", "");
-    message.Document.FileName = message.Document.FileName.Replace(")", "");
-    message.Document.FileName = message.Document.FileName.Replace("й", "и");
-
-    string destinationFilePath = $@"{directoryUsername}/{message.Document.FileName}";
-    if (System.IO.File.Exists(destinationFilePath))
-    {
-        //System.IO.File.Delete(destinationFilePath);
-        var TypeFile = message.Document.FileName.Split('.').Last();
-        var NewNameFile = message.Document.FileName.Replace($".{TypeFile}", $"_1.{TypeFile}");
-        for (int i = 1; i < 10000; i++)
+        if (message.Chat.Type == ChatType.Private)
         {
-            if (System.IO.File.Exists($@"{directoryUsername}/{NewNameFile}"))
-            {
-                int y = i;
-                NewNameFile = NewNameFile.Replace($" ({y}).{TypeFile}", $"_{y + 1}.{TypeFile}");
-            }
-            else { break; }
+            await botClient.SendTextMessageAsync(message.Chat.Id, "Спасибо! Сохраню у себя на сервере 😋", disableNotification: true);
         }
+        Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Файл |{message.Document.FileName}");
+        var fileInfo = await botClient.GetFileAsync(message.Document.FileId);
+        var filePath = fileInfo.FilePath;
+        string directoryDesctop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        string directoryDesctopTGBot = $@"{directoryDesctop}/TGBotDED/BDUserFile";
+        Directory.CreateDirectory(directoryDesctopTGBot);
+        string directoryUsername = $@"{directoryDesctopTGBot}/{message.From.Id}";
 
-        destinationFilePath = $@"{directoryUsername}/{NewNameFile}";
+        Directory.CreateDirectory(directoryUsername);
+
+        message.Document.FileName = message.Document.FileName.Replace(" ", "_");
+        message.Document.FileName = message.Document.FileName.Replace("(", "");
+        message.Document.FileName = message.Document.FileName.Replace(")", "");
+        message.Document.FileName = message.Document.FileName.Replace("й", "и");
+
+        string destinationFilePath = $@"{directoryUsername}/{message.Document.FileName}";
+        if (System.IO.File.Exists(destinationFilePath))
+        {
+            //System.IO.File.Delete(destinationFilePath);
+            var TypeFile = message.Document.FileName.Split('.').Last();
+            var NewNameFile = message.Document.FileName.Replace($".{TypeFile}", $"_1.{TypeFile}");
+            for (int i = 1; i < 10000; i++)
+            {
+                if (System.IO.File.Exists($@"{directoryUsername}/{NewNameFile}"))
+                {
+                    int y = i;
+                    NewNameFile = NewNameFile.Replace($" ({y}).{TypeFile}", $"_{y + 1}.{TypeFile}");
+                }
+                else { break; }
+            }
+
+            destinationFilePath = $@"{directoryUsername}/{NewNameFile}";
+        }
+        await using FileStream fileStream = System.IO.File.OpenWrite(destinationFilePath);
+        await botClient.DownloadFileAsync(filePath, fileStream);
+        fileStream.Close();
+        Console.WriteLine($"Файл сохранен | {destinationFilePath}");
     }
-    await using FileStream fileStream = System.IO.File.OpenWrite(destinationFilePath);
-    await botClient.DownloadFileAsync(filePath, fileStream);
-    fileStream.Close();
-    Console.WriteLine($"Файл сохранен | {destinationFilePath}");
+    else
+    {
+        if (message.Chat.Type == ChatType.Private)
+        {
+            await botClient.SendTextMessageAsync(message.Chat.Id, $"На данный момент отключена возможность сохранения Ваших файлов..\n" +
+                $"{autor} - этой мой разработчик, можете у него уточнить почему так..", disableNotification: true);
+        }
+    }
     return;
 }
 
