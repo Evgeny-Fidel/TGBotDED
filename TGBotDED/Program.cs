@@ -1,5 +1,7 @@
 ﻿using MySql.Data.MySqlClient;
 using System.Data;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
@@ -12,14 +14,17 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.2.4";
+var version = "0.2.6";
 var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
 
 bool Doki = false; // Включение/отключение функции сохранения файлов пользователя
+bool AutoUpdate = true; // Включение/отключение функции автообновления бота
+int AutoUpdateMinete = 15; // Частота проверки обновлений
 
-string DirectorySettings = $"{Environment.CurrentDirectory}/Settings";
+string DirectoryProg = Environment.CurrentDirectory;
+string DirectorySettings = $"{DirectoryProg}/Settings";
 Directory.CreateDirectory(DirectorySettings);
 if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
 {
@@ -31,45 +36,64 @@ if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
         string pwd = "";
 
         string? line;
-        while ((line = await reader.ReadLineAsync()) != null)
+        try
         {
-            if (line.StartsWith("Token.Telegram.API ="))
+            while ((line = await reader.ReadLineAsync()) != null)
             {
-                line = line.Replace("Token.Telegram.API =", "");
-                TokenTelegramAPI = line.Replace(" ", "");
+                if (line.StartsWith("Token.Telegram.API ="))
+                {
+                    line = line.Replace("Token.Telegram.API =", "");
+                    TokenTelegramAPI = line.Replace(" ", "");
+                }
+                if (line.StartsWith("Server ="))
+                {
+                    line = line.Replace("Server =", "");
+                    server = line.Replace(" ", "");
+                }
+                if (line.StartsWith("Database ="))
+                {
+                    line = line.Replace("Database =", "");
+                    database = line.Replace(" ", "");
+                }
+                if (line.StartsWith("Uid ="))
+                {
+                    line = line.Replace("Uid =", "");
+                    uid = line.Replace(" ", "");
+                }
+                if (line.StartsWith("Pwd ="))
+                {
+                    line = line.Replace("Pwd =", "");
+                    pwd = line.Replace(" ", "");
+                }
+                if (line.StartsWith("Autor ="))
+                {
+                    line = line.Replace("Autor =", "");
+                    autor = line.Replace(" ", "");
+                }
+                if (line.StartsWith("Save_Document ="))
+                {
+                    line = line.Replace("Save_Document =", "");
+                    Doki = Convert.ToBoolean(line.Replace(" ", ""));
+                }
+                if (line.StartsWith("Auto_Update ="))
+                {
+                    line = line.Replace("Auto_Update =", "");
+                    AutoUpdate = Convert.ToBoolean(line.Replace(" ", ""));
+                }
+                if (line.StartsWith("Auto_Update_Minute ="))
+                {
+                    line = line.Replace("Auto_Update_Minute =", "");
+                    AutoUpdateMinete = Convert.ToInt32(line.Replace(" ", ""));
+                }
             }
-            if (line.StartsWith("Server ="))
-            {
-                line = line.Replace("Server =", "");
-                server = line.Replace(" ", "");
-            }
-            if (line.StartsWith("Database ="))
-            {
-                line = line.Replace("Database =", "");
-                database = line.Replace(" ", "");
-            }
-            if (line.StartsWith("Uid ="))
-            {
-                line = line.Replace("Uid =", "");
-                uid = line.Replace(" ", "");
-            }
-            if (line.StartsWith("Pwd ="))
-            {
-                line = line.Replace("Pwd =", "");
-                pwd = line.Replace(" ", "");
-            }
-            if (line.StartsWith("Autor ="))
-            {
-                line = line.Replace("Autor =", "");
-                autor = line.Replace(" ", "");
-            }
-            if (line.StartsWith("Save_Document ="))
-            {
-                line = line.Replace("Save_Document =", "");
-                Doki = Convert.ToBoolean(line.Replace(" ", ""));
-            }
+            connStr = $@"Server={server};Database={database};Uid={uid};Pwd={pwd};";
         }
-        connStr = $@"Server={server};Database={database};Uid={uid};Pwd={pwd};";
+        catch
+        {
+            Console.WriteLine($"Возникла ошибка при счении настроек - {DirectorySettings}/Authentication.txt\n" +
+                $"Для того чтобы сбросить файл найстроек, удалите его, запустите бота снова, он сгенирирует правильный файл, после этого, Вам нужно его заполнить.\n");
+        }
+        
     }
 }
 else
@@ -85,7 +109,10 @@ else
         "Pwd = ПАРОЛЬ\n\n" +
         "———————————————————————————Telegram BOT————————————————————————————\n" +
         "Autor = @evgeny_fidel\n" +
-        "Save_Document = false");
+        "Save_Document = false\n" +
+        "Auto_Update = true\n" +
+        "Auto_Update_Minute = 30" +
+        "");
 }
 
 var botClient = new TelegramBotClient(TokenTelegramAPI);
@@ -113,6 +140,19 @@ catch
 botClient.StartReceiving(HandleUpdateAsync, HandlePollingErrorAsync, receiverOptions, cts.Token);
 var me = await botClient.GetMeAsync();
 Console.WriteLine($"Вышел на смену: \"{botClient.GetMeAsync().Result.FirstName}\" @{botClient.GetMeAsync().Result.Username} | Версия бота: {version}");
+
+if(AutoUpdate == true)
+{
+    Timer timer = new Timer(showTime, null, 0, AutoUpdateMinete * 60 * 1000);
+}
+if (System.IO.File.Exists($"{DirectoryProg}/Update TGBotDED.zip"))
+{
+    System.IO.File.Delete($"{DirectoryProg}/Update TGBotDED.zip");
+}
+if (System.IO.File.Exists($"{DirectoryProg}/UpdaterProg.exe"))
+{
+    System.IO.File.Delete($"{DirectoryProg}/UpdaterProg.exe");
+}
 
 Console.ReadLine();
 cts.Cancel();
@@ -2454,4 +2494,28 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
     Console.WriteLine(ErrorMessage);
     return Task.CompletedTask;
 
+}
+
+void showTime(Object obj)
+{
+    try
+    {
+        //ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+        using (var client = new WebClient())
+        using (var stream = client.OpenRead("http://www.google.com"))
+            if (client.DownloadString("https://gaffer-prog.evgeny-fidel.ru/tgbotded/").Contains(version)) { }
+            else
+            {
+                try
+                {
+                    Console.WriteLine("Вышла новая версия бота! Начинаем обновление..");
+                    client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/386/", DirectoryProg + @"/Update TGBotDED.zip");
+                    client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/110/", DirectoryProg + @"/UpdaterProg.exe");
+                    Process.Start(DirectoryProg + @"/UpdaterProg.exe");
+                    Environment.Exit(0);
+                }
+                catch { }
+            }
+    }
+    catch { }
 }
