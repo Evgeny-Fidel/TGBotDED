@@ -15,7 +15,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.2.8";
+var version = "0.2.9";
 var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
@@ -1501,30 +1501,50 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             try
             {
                 string Mes = "";
-                int chek = 0;
-                string Icon = "₺";
-                string IDCirrency = "R01700J";
-                string Value = "";
-                string Nominal = "";
+                int chekVal = 0;
+                string Icon = "";
+                string IDCirrency = "";
+                float Mng = 1;
+                string Flag = "";
                 for (int i = 0; i < Text.Length; i++)
                 {
                     try
                     {
+                        chekVal = 0;
                         if (Text[i].StartsWith("лир"))
                         {
-                            float Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
-                            if(chek == 0)
-                            {
-                                WebClient client = new WebClient();
-                                var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
-                                XDocument xdoc = XDocument.Parse(xml);
-                                var el = xdoc.Element("ValCurs").Elements("Valute");
-                                Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
-                                Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
-                                Value = Value.Substring(0, Value.Length - 2);
-                            }
+                            Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
+                            Icon = "₺";
+                            IDCirrency = "R01700J";
+                            Flag = "🇹🇷";
+                            chekVal++;
+                        }
+                        if (Text[i].StartsWith("доллар") || Text[i].StartsWith("бачей") || Text[i].StartsWith("баксов"))
+                        {
+                            Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
+                            Icon = "$";
+                            IDCirrency = "R01235";
+                            Flag = "🇺🇸";
+                            chekVal++;
+                        }
+                        if (Text[i].StartsWith("евро"))
+                        {
+                            Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
+                            Icon = "€";
+                            IDCirrency = "R01239";
+                            Flag = "🇪🇺";
+                            chekVal++;
+                        }
+                        if (chekVal > 0)
+                        {
+                            WebClient client = new WebClient();
+                            var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
+                            XDocument xdoc = XDocument.Parse(xml);
+                            var el = xdoc.Element("ValCurs").Elements("Valute");
+                            string Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
+                            string Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
+                            Value = Value.Substring(0, Value.Length - 2);
                             
-
                             double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
                             int NominalCor = Convert.ToInt32(Nominal);
                             if (NominalCor > 1)
@@ -1536,20 +1556,18 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             ValueCor = Math.Round(ValueCor, 2);
                             string CorValue = Convert.ToString(ValueCor).Replace(".", ",");
                             string CorMng = Convert.ToString(Mng).Replace(".", ",");
-                            Mes = $"{Mes}\n{CorMng}{Icon} = {CorValue}₽";
-                            chek++;
+                            Mes = $"{Mes}\n{Flag} {CorMng}{Icon} = {CorValue}₽";
                         }
                     }
                     catch { }
                 }
-                if (chek > 0)
+                if (Mes != "")
                 {
-                    Mes = $"{Mes}\n{buttonRUBtoTRY}";
+                    Mes = $"{Mes}";
                     await botClient.SendTextMessageAsync(message.Chat, Mes, disableNotification: true);
                 }
             }
             catch { }
-            
         }
     }
     // Ниже только для групп и супергрупп
