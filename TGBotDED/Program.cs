@@ -15,7 +15,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.2.9";
+var version = "0.3.0";
 var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
