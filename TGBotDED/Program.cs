@@ -1497,7 +1497,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
     
         if(AutoTRYRUB == true)
         {
-            string[] Text = message.Text.Split(' ');
+            string[] Text = message.Text.Replace("\n"," ").Split(' ');
             try
             {
                 string Mes = "";
