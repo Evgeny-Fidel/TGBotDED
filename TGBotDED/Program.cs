@@ -1,4 +1,5 @@
-﻿using MySql.Data.MySqlClient;
+﻿using Google.Protobuf.WellKnownTypes;
+using MySql.Data.MySqlClient;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
@@ -14,14 +15,15 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.2.6";
+var version = "0.2.8";
 var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
 
 bool Doki = false; // Включение/отключение функции сохранения файлов пользователя
 bool AutoUpdate = true; // Включение/отключение функции автообновления бота
-int AutoUpdateMinete = 15; // Частота проверки обновлений
+int AutoUpdateMinete = 30; // Частота проверки обновлений
+bool AutoTRYRUB = true; // Включение/отключение функции автоперевода лир в рубли
 
 string DirectoryProg = Environment.CurrentDirectory;
 string DirectorySettings = $"{DirectoryProg}/Settings";
@@ -85,6 +87,11 @@ if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
                     line = line.Replace("Auto_Update_Minute =", "");
                     AutoUpdateMinete = Convert.ToInt32(line.Replace(" ", ""));
                 }
+                if (line.StartsWith("Auto_TRYtoRUB ="))
+                {
+                    line = line.Replace("Auto_TRYtoRUB =", "");
+                    AutoTRYRUB = Convert.ToBoolean(line.Replace(" ", ""));
+                }
             }
             connStr = $@"Server={server};Database={database};Uid={uid};Pwd={pwd};";
         }
@@ -111,7 +118,8 @@ else
         "Autor = @evgeny_fidel\n" +
         "Save_Document = false\n" +
         "Auto_Update = true\n" +
-        "Auto_Update_Minute = 30" +
+        "Auto_Update_Minute = 30\n" +
+        "Auto_TRYtoRUB = true" +
         "");
 }
 
@@ -683,7 +691,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         if (WeatherValue == "пасмурно") { SmileyWeather = "☁️"; }
                         if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
                         if (WeatherValue == "небольшой проливной дождь") { SmileyWeather = "🌧"; }
-                        if (WeatherValue == "гроза" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
+                        if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
                         if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад") { SmileyWeather = "🌨"; }
                         if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
                         if (WeatherValue == "туман") { SmileyWeather = "🌫"; }
@@ -751,8 +759,6 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 var mes = await botClient.SendTextMessageAsync(message.Chat, "Секунду, взламываю сайта ЦБ, чтобы узнать для Вас курс! 📊", disableNotification: true);
                 try
                 {
-
-
                     try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
                     string Value = "";
                     string Icon = "";
@@ -1004,18 +1010,13 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     if (ChekMes > 0)
                     {
                         var SplitVal = message.Text.Split(' ').Last();
-                        SplitVal = Regex.Replace(SplitVal, @"\D+", "");
-
-                        int Mng;
-                        if (SplitVal == "")
+                        float Mng = 1;
+                        try
                         {
-                            Mng = 1;
+                            Mng = Convert.ToSingle(SplitVal.Replace(",", "."));
                         }
-                        else
-                        {
-                            Mng = Convert.ToInt32(SplitVal);
-                        }
-
+                        catch { }
+                            
                         WebClient client = new WebClient();
                         var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
                         XDocument xdoc = XDocument.Parse(xml);
@@ -1023,13 +1024,8 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
                         Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
                         Value = Value.Substring(0, Value.Length - 2);
-                        Value = Value.Replace(",", ".");
-                        double ValueCor = 0;
-                        try
-                        {
-                            ValueCor = Convert.ToDouble(Value);
-                        }
-                        catch { }
+
+                        double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
                         int NominalCor = Convert.ToInt32(Nominal);
                         if (NominalCor > 1)
                         {
@@ -1038,8 +1034,9 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         }
                         ValueCor = ValueCor * Mng;
                         ValueCor = Math.Round(ValueCor, 2);
-                        Value = Convert.ToString(ValueCor);
-                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"{Mng}{Icon} = {Value.Replace(".", ",")}₽\n{Name}");
+                        Value = Convert.ToString(ValueCor).Replace(".", ",");
+                        string CorMng = Convert.ToString(Mng).Replace(".", ",");
+                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"{CorMng}{Icon} = {Value}₽\n{Name}");
                     }
                     else
                     {
@@ -1497,6 +1494,63 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             Message sentMessage = await botClient.SendTextMessageAsync(message.Chat.Id, Text, replyMarkup: inlineKeyboard, disableNotification: true);
             return;
         }
+    
+        if(AutoTRYRUB == true)
+        {
+            string[] Text = message.Text.Split(' ');
+            try
+            {
+                string Mes = "";
+                int chek = 0;
+                string Icon = "₺";
+                string IDCirrency = "R01700J";
+                string Value = "";
+                string Nominal = "";
+                for (int i = 0; i < Text.Length; i++)
+                {
+                    try
+                    {
+                        if (Text[i].StartsWith("лир"))
+                        {
+                            float Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
+                            if(chek == 0)
+                            {
+                                WebClient client = new WebClient();
+                                var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
+                                XDocument xdoc = XDocument.Parse(xml);
+                                var el = xdoc.Element("ValCurs").Elements("Valute");
+                                Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
+                                Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
+                                Value = Value.Substring(0, Value.Length - 2);
+                            }
+                            
+
+                            double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
+                            int NominalCor = Convert.ToInt32(Nominal);
+                            if (NominalCor > 1)
+                            {
+                                ValueCor = ValueCor / NominalCor;
+                                ValueCor = Math.Round(ValueCor, 2);
+                            }
+                            ValueCor = ValueCor * Mng;
+                            ValueCor = Math.Round(ValueCor, 2);
+                            string CorValue = Convert.ToString(ValueCor).Replace(".", ",");
+                            string CorMng = Convert.ToString(Mng).Replace(".", ",");
+                            Mes = $"{Mes}\n{CorMng}{Icon} = {CorValue}₽";
+                            chek++;
+                        }
+                    }
+                    catch { }
+                }
+                if (chek > 0)
+                {
+                    Mes = $"{Mes}\n{buttonRUBtoTRY}";
+                    await botClient.SendTextMessageAsync(message.Chat, Mes, disableNotification: true);
+                }
+            }
+            catch { }
+            
+        }
     }
     // Ниже только для групп и супергрупп
     if (message.Chat.Type == ChatType.Group || message.Chat.Type == ChatType.Supergroup)
@@ -1726,7 +1780,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
     }
     if (message.Chat.Type == ChatType.Private)
     {
-        await botClient.SendTextMessageAsync(message.Chat, "Я не понял, что ты хочешь =(\nПопробуй написать иначе!\n/start - команда для перезапуска;");
+        await botClient.SendTextMessageAsync(message.Chat, "Я не понял, что ты хочешь =(\nПопробуй написать иначе!\n/start - команда для перезапуска;", disableNotification: true);
     }
     return;
 }
