@@ -1,8 +1,6 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 using System.Data;
 using System.Diagnostics;
-using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
@@ -15,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.0";
+var version = "0.3.2";
 var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
@@ -100,7 +98,6 @@ if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
             Console.WriteLine($"Возникла ошибка при счении настроек - {DirectorySettings}/Authentication.txt\n" +
                 $"Для того чтобы сбросить файл найстроек, удалите его, запустите бота снова, он сгенирирует правильный файл, после этого, Вам нужно его заполнить.\n");
         }
-        
     }
 }
 else
@@ -149,7 +146,7 @@ botClient.StartReceiving(HandleUpdateAsync, HandlePollingErrorAsync, receiverOpt
 var me = await botClient.GetMeAsync();
 Console.WriteLine($"Вышел на смену: \"{botClient.GetMeAsync().Result.FirstName}\" @{botClient.GetMeAsync().Result.Username} | Версия бота: {version}");
 
-if(AutoUpdate == true)
+if (AutoUpdate == true)
 {
     Timer timer = new Timer(showTime, null, 0, AutoUpdateMinete * 60 * 1000);
 }
@@ -580,13 +577,21 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 try // Группа
                 {
                     MySqlBase.Open();
-                    string cmdsql = $"SELECT market FROM BDGroup WHERE id = '{message.Chat.Id}';";
-                    MySqlCommand commandMarket = new MySqlCommand(cmdsql, MySqlBase);
-                    string Market = commandMarket.ExecuteScalar().ToString();
+                    string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
+                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlDataReader reader = command.ExecuteReader();
+                    string Market = "";
+                    string AutoCurrency = "";
+                    while (reader.Read())
+                    {
+                        Market = reader.GetString("market");
+                        AutoCurrency = reader.GetString("auto_currency");
+                    }
                     MySqlBase.Close();
                     TextMes = $"{TextMes}\n\n" +
                         $"Информация из БД по группе:\n" +
-                        $"Market: {Market}";
+                        $"Market: {Market}\n" +
+                        $"AutoCurrency: {AutoCurrency}";
                 }
                 catch { MySqlBase.Close(); }
             }
@@ -1016,7 +1021,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             Mng = Convert.ToSingle(SplitVal.Replace(",", "."));
                         }
                         catch { }
-                            
+
                         WebClient client = new WebClient();
                         var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
                         XDocument xdoc = XDocument.Parse(xml);
@@ -1401,20 +1406,22 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 command = new MySqlCommand(cmdsql, MySqlBase);
                 reader = command.ExecuteReader();
                 Text = $"{Text}\nБД Групп:\n" +
-                    $"ID|Title|Type|Market\n";
+                    $"ID|Title|Type|Market|AutoCurrency\n";
                 while (reader.Read())
                 {
                     string id = reader.GetString("id");
                     string title = reader.GetString("title");
                     string type = reader.GetString("type");
                     string market = reader.GetString("market");
+                    string auto_currency = reader.GetString("auto_currency");
 
                     if (id == "") { id = "-"; }
                     if (title == "") { title = "-"; }
                     if (type == "") { type = "-"; }
                     if (market == "") { market = "-"; }
+                    if (auto_currency == "") { auto_currency = "-"; }
 
-                    Text = $"{Text}{id}|{title}|{type}|{market}\n";
+                    Text = $"{Text}{id}|{title}|{type}|{market}|{auto_currency}\n";
                 }
                 await botClient.SendTextMessageAsync(message.Chat, $"{Text}", disableNotification: true);
             }
@@ -1488,18 +1495,21 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 $"/info - полная информация по всему;\n" +
                 $"/update_user - обновить данные пользователя в БД;\n" +
                 $"/update_group - обновить данные группы в БД;\n" +
-                $"/val_usd - курс валюты;\n";
+                $"/val_usd - курс валюты;\n" +
+                $"/auto_val_on - включить автоперевод валют;\n" +
+                $"/auto_val_off - отключить автоперевод валют;\n";
 
             InlineKeyboardMarkup inlineKeyboard = new(new[] { InlineKeyboardButton.WithUrl(text: "Подробное описание команд ➡️", url: "https://evgeny-fidel.ru/cmdtgbotded/") });
             Message sentMessage = await botClient.SendTextMessageAsync(message.Chat.Id, Text, replyMarkup: inlineKeyboard, disableNotification: true);
             return;
         }
-    
-        if(AutoTRYRUB == true)
+
+        if (AutoTRYRUB == true)
         {
-            string[] Text = message.Text.Replace("\n"," ").Split(' ');
+            bool chek = false;
             try
             {
+                string[] Text = message.Text.Replace("\n", " ").Split(' ');
                 string Mes = "";
                 int chekVal = 0;
                 string Icon = "";
@@ -1519,7 +1529,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             Flag = "🇹🇷";
                             chekVal++;
                         }
-                        if (Text[i].StartsWith("доллар") || Text[i].StartsWith("бачей") || Text[i].StartsWith("баксов"))
+                        if (Text[i].StartsWith("доллар") || Text[i].StartsWith("бачей") || Text[i].StartsWith("бакс"))
                         {
                             Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
                             Icon = "$";
@@ -1527,7 +1537,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             Flag = "🇺🇸";
                             chekVal++;
                         }
-                        if (Text[i].StartsWith("евро"))
+                        if (Text[i] == "евро" || Text[i].StartsWith("еврик"))
                         {
                             Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
                             Icon = "€";
@@ -1535,7 +1545,15 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             Flag = "🇪🇺";
                             chekVal++;
                         }
-                        if (chekVal > 0)
+                        if (message.Chat.Type == ChatType.Private)
+                        {
+                            chek = true;
+                        }
+                        else
+                        {
+                            ChekBDAutoCurrency();
+                        }
+                        if (chekVal > 0 && chek == true)
                         {
                             WebClient client = new WebClient();
                             var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
@@ -1544,7 +1562,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             string Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
                             string Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
                             Value = Value.Substring(0, Value.Length - 2);
-                            
+
                             double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
                             int NominalCor = Convert.ToInt32(Nominal);
                             if (NominalCor > 1)
@@ -1565,10 +1583,34 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 {
                     Mes = $"{Mes}";
                     await botClient.SendTextMessageAsync(message.Chat, Mes, disableNotification: true);
+                    MySqlBase.Close();
+                    return;
                 }
             }
             catch { }
+
+            void ChekBDAutoCurrency()
+            {
+                try
+                {
+                    MySqlBase.Open();
+                    string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
+                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlDataReader reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var Auto_currency = reader.GetString("auto_currency");
+                        if (Auto_currency == "True")
+                        {
+                            chek = true;
+                        }
+                    }
+                }
+                catch { }
+            }
+            MySqlBase.Close();
         }
+
     }
     // Ниже только для групп и супергрупп
     if (message.Chat.Type == ChatType.Group || message.Chat.Type == ChatType.Supergroup)
@@ -1795,11 +1837,53 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 $"\nИгрок №1, выберите действие ⬇️", disableNotification: true, replyMarkup: inlineKeyboard);
             return;
         }
+
+        if (message.Text.StartsWith("/auto_val_off"))
+        {
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            try
+            {
+                MySqlBase.Open();
+                string cmdsql = $"UPDATE BDGroup SET auto_currency = '0' WHERE id = '{message.Chat.Id}';";
+                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                command.ExecuteNonQuery();
+                var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
+                await Task.Delay(1000);
+                await botClient.DeleteMessageAsync(message.Chat.Id, mes.MessageId);
+            }
+            catch
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Что-то пошло не так.. Попробуйте чуточку позже!)", disableNotification: true);
+            }
+            MySqlBase.Close();
+            return;
+        }
+        if (message.Text.StartsWith("/auto_val_on"))
+        {
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            try
+            {
+                MySqlBase.Open();
+                string cmdsql = $"UPDATE BDGroup SET auto_currency = '1' WHERE id = '{message.Chat.Id}';";
+                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                command.ExecuteNonQuery();
+                var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
+                await Task.Delay(1000);
+                await botClient.DeleteMessageAsync(message.Chat.Id, mes.MessageId);
+            }
+            catch
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Что-то пошло не так.. Попробуйте чуточку позже!)", disableNotification: true);
+            }
+            MySqlBase.Close();
+            return;
+        }
     }
     if (message.Chat.Type == ChatType.Private)
     {
         await botClient.SendTextMessageAsync(message.Chat, "Я не понял, что ты хочешь =(\nПопробуй написать иначе!\n/start - команда для перезапуска;", disableNotification: true);
     }
+    MySqlBase.Close();
     return;
 }
 
@@ -2348,7 +2432,7 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
 
 async Task HandleDocument(ITelegramBotClient botClient, Message message)
 {
-    if(Doki == true)
+    if (Doki == true)
     {
         if (message.Chat.Type == ChatType.Private)
         {
