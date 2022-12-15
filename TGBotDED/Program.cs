@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.2";
+var version = "0.3.3";
 var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
@@ -22,6 +22,7 @@ bool Doki = false; // Включение/отключение функции с�
 bool AutoUpdate = true; // Включение/отключение функции автообновления бота
 int AutoUpdateMinete = 30; // Частота проверки обновлений
 bool AutoTRYRUB = true; // Включение/отключение функции автоперевода лир в рубли
+bool Logs = true; // Включение/отключение логирования приватных сообщений в консоль
 
 string DirectoryProg = Environment.CurrentDirectory;
 string DirectorySettings = $"{DirectoryProg}/Settings";
@@ -264,7 +265,11 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
     // Ниже только приват
     if (message.Chat.Type == ChatType.Private)
     {
-        Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Сообщение | {message.Text}");
+        if(Logs == true)
+        {
+            string TextMes = message.Text;
+            Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Сообщение | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {TextMes.Replace("\n"," ")}");
+        }
         if (message.Text.StartsWith("/say_all_users_test "))
         {
             var ID = "";
@@ -2654,13 +2659,13 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
 
 void showTime(Object obj)
 {
+    //Console.WriteLine($"Проверка обновлений | Auto_Update_Minute = {AutoUpdateMinete} | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
     try
     {
         //ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
         using (var client = new WebClient())
         using (var stream = client.OpenRead("http://www.google.com"))
-            if (client.DownloadString("https://gaffer-prog.evgeny-fidel.ru/tgbotded/").Contains(version)) { }
-            else
+            if (client.DownloadString("https://gaffer-prog.evgeny-fidel.ru/tgbotded/").Contains(version) != true)
             {
                 try
                 {
@@ -2669,8 +2674,13 @@ void showTime(Object obj)
                     client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/110/", DirectoryProg + @"/UpdaterProg.exe");
                     Process.Start(DirectoryProg + @"/UpdaterProg.exe");
                     Environment.Exit(0);
+                    //Console.WriteLine($"Версия не актуальная! | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
                 }
                 catch { }
+            }
+            else
+            {
+                //Console.WriteLine($"Версия актуальная! | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
             }
     }
     catch { }
