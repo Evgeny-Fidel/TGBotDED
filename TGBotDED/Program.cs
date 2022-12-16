@@ -1,4 +1,5 @@
 ﻿using MySql.Data.MySqlClient;
+using Org.BouncyCastle.Tsp;
 using System.Data;
 using System.Diagnostics;
 using System.Net;
@@ -13,7 +14,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.3";
+var version = "0.3.4";
 var autor = "";
 string TokenTelegramAPI = "";
 string connStr = "";
@@ -145,7 +146,7 @@ catch
 
 botClient.StartReceiving(HandleUpdateAsync, HandlePollingErrorAsync, receiverOptions, cts.Token);
 var me = await botClient.GetMeAsync();
-Console.WriteLine($"Вышел на смену: \"{botClient.GetMeAsync().Result.FirstName}\" @{botClient.GetMeAsync().Result.Username} | Версия бота: {version}");
+Console.WriteLine($"Вышел на смену: \"{botClient.GetMeAsync().Result.FirstName}\" @{botClient.GetMeAsync().Result.Username} | Версия бота: {version} | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
 
 if (AutoUpdate == true)
 {
@@ -265,10 +266,10 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
     // Ниже только приват
     if (message.Chat.Type == ChatType.Private)
     {
-        if(Logs == true)
+        if (Logs == true)
         {
             string TextMes = message.Text;
-            Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Сообщение | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {TextMes.Replace("\n"," ")}");
+            Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Сообщение | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {TextMes.Replace("\n", " ")}");
         }
         if (message.Text.StartsWith("/say_all_users_test "))
         {
@@ -1509,113 +1510,9 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             return;
         }
 
-        if (AutoTRYRUB == true)
-        {
-            bool chek = false;
-            try
-            {
-                string[] Text = message.Text.Replace("\n", " ").Split(' ');
-                string Mes = "";
-                int chekVal = 0;
-                string Icon = "";
-                string IDCirrency = "";
-                float Mng = 1;
-                string Flag = "";
-                for (int i = 0; i < Text.Length; i++)
-                {
-                    try
-                    {
-                        chekVal = 0;
-                        if (Text[i].StartsWith("лир"))
-                        {
-                            Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
-                            Icon = "₺";
-                            IDCirrency = "R01700J";
-                            Flag = "🇹🇷";
-                            chekVal++;
-                        }
-                        if (Text[i].StartsWith("доллар") || Text[i].StartsWith("бачей") || Text[i].StartsWith("бакс"))
-                        {
-                            Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
-                            Icon = "$";
-                            IDCirrency = "R01235";
-                            Flag = "🇺🇸";
-                            chekVal++;
-                        }
-                        if (Text[i] == "евро" || Text[i].StartsWith("еврик"))
-                        {
-                            Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
-                            Icon = "€";
-                            IDCirrency = "R01239";
-                            Flag = "🇪🇺";
-                            chekVal++;
-                        }
-                        if (message.Chat.Type == ChatType.Private)
-                        {
-                            chek = true;
-                        }
-                        else
-                        {
-                            ChekBDAutoCurrency();
-                        }
-                        if (chekVal > 0 && chek == true)
-                        {
-                            WebClient client = new WebClient();
-                            var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
-                            XDocument xdoc = XDocument.Parse(xml);
-                            var el = xdoc.Element("ValCurs").Elements("Valute");
-                            string Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
-                            string Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
-                            Value = Value.Substring(0, Value.Length - 2);
 
-                            double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
-                            int NominalCor = Convert.ToInt32(Nominal);
-                            if (NominalCor > 1)
-                            {
-                                ValueCor = ValueCor / NominalCor;
-                                ValueCor = Math.Round(ValueCor, 2);
-                            }
-                            ValueCor = ValueCor * Mng;
-                            ValueCor = Math.Round(ValueCor, 2);
-                            string CorValue = Convert.ToString(ValueCor).Replace(".", ",");
-                            string CorMng = Convert.ToString(Mng).Replace(".", ",");
-                            Mes = $"{Mes}\n{Flag} {CorMng}{Icon} = {CorValue}₽";
-                        }
-                    }
-                    catch { }
-                }
-                if (Mes != "")
-                {
-                    Mes = $"{Mes}";
-                    await botClient.SendTextMessageAsync(message.Chat, Mes, disableNotification: true);
-                    MySqlBase.Close();
-                    return;
-                }
-            }
-            catch { }
-
-            void ChekBDAutoCurrency()
-            {
-                try
-                {
-                    MySqlBase.Open();
-                    string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
-                    MySqlDataReader reader = command.ExecuteReader();
-                    while (reader.Read())
-                    {
-                        var Auto_currency = reader.GetString("auto_currency");
-                        if (Auto_currency == "True")
-                        {
-                            chek = true;
-                        }
-                    }
-                }
-                catch { }
-            }
-            MySqlBase.Close();
-        }
-
+        await MessageParsing(message);
+        return;
     }
     // Ниже только для групп и супергрупп
     if (message.Chat.Type == ChatType.Group || message.Chat.Type == ChatType.Supergroup)
@@ -1884,10 +1781,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             return;
         }
     }
-    if (message.Chat.Type == ChatType.Private)
-    {
-        await botClient.SendTextMessageAsync(message.Chat, "Я не понял, что ты хочешь =(\nПопробуй написать иначе!\n/start - команда для перезапуска;", disableNotification: true);
-    }
+
     MySqlBase.Close();
     return;
 }
@@ -2489,6 +2383,7 @@ async Task HandleDocument(ITelegramBotClient botClient, Message message)
                 $"{autor} - этой мой разработчик, можете у него уточнить почему так..", disableNotification: true);
         }
     }
+    await MessageParsing(message);
     return;
 }
 
@@ -2579,12 +2474,9 @@ async Task HandlePhoto(ITelegramBotClient botClient, Message message)
             MySqlBase.Close();
             return;
         }
-        if (message.Photo != null)
-        {
-            Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Фото | Попытка отправить фото");
-            //await botClient.SendTextMessageAsync(message.Chat.Id, "Ауф какое фото! Но лучше отправить файлом 😉", disableNotification: true);
-            return;
-        }
+        
+        await MessageParsing(message);
+        return;
     }
 }
 
@@ -2684,4 +2576,116 @@ void showTime(Object obj)
             }
     }
     catch { }
+}
+
+async Task MessageParsing(Message message)
+{
+    bool chek = false;
+    string DoubleText = $"";
+    try
+    {
+        if (message.Text != null) { DoubleText = DoubleText + message.Text; }
+        if (message.Caption != null) { DoubleText = DoubleText + message.Caption; }
+        DoubleText = DoubleText.Replace("\n", " ");
+        string[] Text = DoubleText.Split(' ');
+        string FinalMessage = "";
+        
+        for (int i = 0; i < Text.Length; i++)
+        {
+            if (AutoTRYRUB == true)
+            {
+                try
+                {
+                    string Icon = "";
+                    string IDCirrency = "";
+                    string Flag = "";
+                    float Mng = 1;
+                    int chekVal = 0;
+                    if (Text[i].StartsWith("лир"))
+                    {
+                        Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
+                        Icon = "₺";
+                        IDCirrency = "R01700J";
+                        Flag = "🇹🇷";
+                        chekVal++;
+                    }
+                    if (Text[i].StartsWith("доллар") || Text[i].StartsWith("бачей") || Text[i].StartsWith("бакс"))
+                    {
+                        Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
+                        Icon = "$";
+                        IDCirrency = "R01235";
+                        Flag = "🇺🇸";
+                        chekVal++;
+                    }
+                    if (Text[i] == "евро" || Text[i].StartsWith("еврик"))
+                    {
+                        Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
+                        Icon = "€";
+                        IDCirrency = "R01239";
+                        Flag = "🇪🇺";
+                        chekVal++;
+                    }
+                    if (message.Chat.Type == ChatType.Private) { chek = true; } else { ChekBDAutoCurrency(); }
+                    if (chekVal > 0 && chek == true)
+                    {
+                        WebClient client = new WebClient();
+                        var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
+                        XDocument xdoc = XDocument.Parse(xml);
+                        var el = xdoc.Element("ValCurs").Elements("Valute");
+                        string Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
+                        string Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
+                        Value = Value.Substring(0, Value.Length - 2);
+
+                        double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
+                        int NominalCor = Convert.ToInt32(Nominal);
+                        if (NominalCor > 1)
+                        {
+                            ValueCor = ValueCor / NominalCor;
+                            ValueCor = Math.Round(ValueCor, 2);
+                        }
+                        ValueCor = ValueCor * Mng;
+                        ValueCor = Math.Round(ValueCor, 2);
+                        string CorValue = Convert.ToString(ValueCor).Replace(".", ",");
+                        string CorMng = Convert.ToString(Mng).Replace(".", ",");
+                        FinalMessage = $"{FinalMessage}\n{Flag} {CorMng}{Icon} = {CorValue}₽";
+                    }
+                }
+                catch { }
+            }
+        }
+        if (FinalMessage != "")
+        {
+            await botClient.SendTextMessageAsync(message.Chat, FinalMessage, disableNotification: true, replyToMessageId: message.MessageId);
+        }
+        else
+        {
+            if (message.Chat.Type == ChatType.Private)
+            {
+                await botClient.SendTextMessageAsync(message.Chat, "Я не понял, что ты хочешь =(\nПопробуй написать иначе!\n/start - команда для перезапуска;", disableNotification: true);
+            }
+        }
+    }
+    catch { }
+
+    void ChekBDAutoCurrency()
+    {
+        try
+        {
+            MySqlBase.Open();
+            string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
+            MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+            MySqlDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var Auto_currency = reader.GetString("auto_currency");
+                if (Auto_currency == "True")
+                {
+                    chek = true;
+                }
+            }
+        }
+        catch { }
+    }
+    MySqlBase.Close();
+    return;
 }
