@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.6";
+var version = "0.3.7";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -2536,10 +2536,9 @@ async Task HandlePhoto(ITelegramBotClient botClient, Message message)
             MySqlBase.Close();
             return;
         }
-
-        await MessageParsing(message);
-        return;
     }
+    await MessageParsing(message);
+    return;
 }
 
 async Task HandleMember(ITelegramBotClient botClient, Update update, Message message)
@@ -2792,7 +2791,7 @@ async Task MessageParsing(Message message)
                         Flag = "🇪🇺";
                         chekVal++;
                     }
-                    if (message.Chat.Type == ChatType.Private) { chek = true; } else { ChekBDAutoCurrency(); }
+                    if (message.Chat.Type == ChatType.Private) { chek = true; } else { if (chekVal > 0) { ChekBDAutoCurrency(); } }
                     if (chekVal > 0 && chek == true)
                     {
                         WebClient client = new WebClient();
