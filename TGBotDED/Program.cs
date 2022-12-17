@@ -19,12 +19,12 @@ string TokenTelegramAPI = "";
 string TokenWeather = "";
 string connStr = "";
 
-bool Doki = false; // Включение/отключение функции сохранения файлов пользователя
-bool AutoUpdate = true; // Включение/отключение функции автообновления бота
-int AutoUpdateMinete = 30; // Частота проверки обновлений
-bool AutoValRUB = true; // Включение/отключение функции автоперевода лир в рубли
-bool Logs = true; // Включение/отключение логирования приватных сообщений в консоль
-bool WeatherLoc = true; // Включение/отключение отправка погоды по геолокации
+bool Doki = false;          // Включение/отключение функции сохранения файлов пользователя
+bool AutoUpdate = true;     // Включение/отключение функции автообновления бота
+int AutoUpdateMinete = 30;  // Частота проверки обновлений
+bool AutoValRUB = true;     // Включение/отключение функции автоперевода лир в рубли
+bool Logs = true;           // Включение/отключение логирования приватных сообщений в консоль
+bool WeatherLoc = true;     // Включение/отключение отправка погоды по геолокации
 
 string DirectoryProg = Environment.CurrentDirectory;
 string DirectorySettings = $"{DirectoryProg}/Settings";
