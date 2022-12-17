@@ -1,5 +1,4 @@
 ﻿using MySql.Data.MySqlClient;
-using Org.BouncyCastle.Tsp;
 using System.Data;
 using System.Diagnostics;
 using System.Net;
@@ -14,16 +13,18 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.4";
+var version = "0.3.5";
 var autor = "";
 string TokenTelegramAPI = "";
+string TokenWeather = "";
 string connStr = "";
 
 bool Doki = false; // Включение/отключение функции сохранения файлов пользователя
 bool AutoUpdate = true; // Включение/отключение функции автообновления бота
 int AutoUpdateMinete = 30; // Частота проверки обновлений
-bool AutoTRYRUB = true; // Включение/отключение функции автоперевода лир в рубли
+bool AutoValRUB = true; // Включение/отключение функции автоперевода лир в рубли
 bool Logs = true; // Включение/отключение логирования приватных сообщений в консоль
+bool WeatherLoc = true; // Включение/отключение отправка погоды по геолокации
 
 string DirectoryProg = Environment.CurrentDirectory;
 string DirectorySettings = $"{DirectoryProg}/Settings";
@@ -46,6 +47,11 @@ if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
                 {
                     line = line.Replace("Token.Telegram.API =", "");
                     TokenTelegramAPI = line.Replace(" ", "");
+                }
+                if (line.StartsWith("Token.Weather ="))
+                {
+                    line = line.Replace("Token.Weather =", "");
+                    TokenWeather = line.Replace(" ", "");
                 }
                 if (line.StartsWith("Server ="))
                 {
@@ -87,10 +93,15 @@ if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
                     line = line.Replace("Auto_Update_Minute =", "");
                     AutoUpdateMinete = Convert.ToInt32(line.Replace(" ", ""));
                 }
-                if (line.StartsWith("Auto_TRYtoRUB ="))
+                if (line.StartsWith("Auto_ValtoRUB ="))
                 {
-                    line = line.Replace("Auto_TRYtoRUB =", "");
-                    AutoTRYRUB = Convert.ToBoolean(line.Replace(" ", ""));
+                    line = line.Replace("Auto_ValtoRUB =", "");
+                    AutoValRUB = Convert.ToBoolean(line.Replace(" ", ""));
+                }
+                if (line.StartsWith("Weather_Location ="))
+                {
+                    line = line.Replace("Weather_Location =", "");
+                    WeatherLoc = Convert.ToBoolean(line.Replace(" ", ""));
                 }
             }
             connStr = $@"Server={server};Database={database};Uid={uid};Pwd={pwd};";
@@ -107,7 +118,8 @@ else
     Console.WriteLine($"Отсутствуют файлы аутентификации! Заполните значения по этому пути - {DirectorySettings}/Authentication.txt");
     System.IO.File.WriteAllText($"{DirectorySettings}/Authentication.txt", "" +
         "———————————————————————————Telegram API————————————————————————————\n" +
-        "Token.Telegram.API = ЗАМЕНИТЕ_ЭТОТ_ТЕКСТ_НА_СВОЙ_ТОКЕН\n\n" +
+        "Token.Telegram.API = ЗАМЕНИТЕ_ЭТОТ_ТЕКСТ_НА_СВОЙ_ТОКЕН_TELEGRAM\n" +
+        "Token.Weather = ЗАМЕНИТЕ_ЭТОТ_ТЕКСТ_НА_СВОЙ_ТОКЕН_OPENWEATHERMAP\n\n" +
         "——————————————————————————————MySQL————————————————————————————————\n" +
         "Server = IP_ВАШЕЙ_БД\n" +
         "Database = ИМЯ_ВАШЕЙ_БД\n" +
@@ -118,7 +130,8 @@ else
         "Save_Document = false\n" +
         "Auto_Update = true\n" +
         "Auto_Update_Minute = 30\n" +
-        "Auto_TRYtoRUB = true" +
+        "Auto_ValtoRUB = true\n" +
+        "Weather_Location = true" +
         "");
 }
 
@@ -203,7 +216,13 @@ async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, Cancel
             await HandleMember(botClient, update, update.Message);
             return;
         }
+        if (update.Message.Type == MessageType.Location)
+        {
+            await HandleLocation(botClient, update.Message);
+            return;
+        }
     }
+    return;
 }
 
 
@@ -588,16 +607,19 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     MySqlDataReader reader = command.ExecuteReader();
                     string Market = "";
                     string AutoCurrency = "";
+                    string AutoWeatherLoc = "";
                     while (reader.Read())
                     {
                         Market = reader.GetString("market");
                         AutoCurrency = reader.GetString("auto_currency");
+                        AutoWeatherLoc = reader.GetString("auto_weather_loc");
                     }
                     MySqlBase.Close();
                     TextMes = $"{TextMes}\n\n" +
                         $"Информация из БД по группе:\n" +
                         $"Market: {Market}\n" +
-                        $"AutoCurrency: {AutoCurrency}";
+                        $"AutoCurrency: {AutoCurrency}\n" +
+                        $"AutoWeatherLoc: {AutoWeatherLoc}";
                 }
                 catch { MySqlBase.Close(); }
             }
@@ -614,7 +636,6 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             try
             {
                 try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
-                string TokenWeather = "66c03fe8ef1ef87c9a5fb4104d848418";
                 string Smiley = "";
                 string SmileyWeather = "";
                 string Country = "";
@@ -654,8 +675,8 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     {
                         Country = "🇹🇷";
                         City = "Анталия";
-                        Lat = "36.77";
-                        Lon = "30.71";
+                        Lat = "36.9293";
+                        Lon = "30.7019";
                         ChekPog++;
                         ChekAll++;
                     }
@@ -705,7 +726,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
                         if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад") { SmileyWeather = "🌨"; }
                         if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
-                        if (WeatherValue == "туман") { SmileyWeather = "🌫"; }
+                        if (WeatherValue == "туман" || WeatherValue == "плотный туман") { SmileyWeather = "🌫"; }
 
                         if (SmileyWeather == "") { SmileyWeather = "❔"; }
 
@@ -1412,7 +1433,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 command = new MySqlCommand(cmdsql, MySqlBase);
                 reader = command.ExecuteReader();
                 Text = $"{Text}\nБД Групп:\n" +
-                    $"ID|Title|Type|Market|AutoCurrency\n";
+                    $"ID|Title|Type|Market|AutoCurrency|AutoWeatherLoc\n";
                 while (reader.Read())
                 {
                     string id = reader.GetString("id");
@@ -1420,14 +1441,14 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     string type = reader.GetString("type");
                     string market = reader.GetString("market");
                     string auto_currency = reader.GetString("auto_currency");
+                    string auto_weather_loc = reader.GetString("auto_weather_loc");
 
                     if (id == "") { id = "-"; }
                     if (title == "") { title = "-"; }
                     if (type == "") { type = "-"; }
                     if (market == "") { market = "-"; }
-                    if (auto_currency == "") { auto_currency = "-"; }
 
-                    Text = $"{Text}{id}|{title}|{type}|{market}|{auto_currency}\n";
+                    Text = $"{Text}{id}|{title}|{type}|{market}|{auto_currency}|{auto_weather_loc}\n";
                 }
                 await botClient.SendTextMessageAsync(message.Chat, $"{Text}", disableNotification: true);
             }
@@ -1503,7 +1524,9 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 $"/update_group - обновить данные группы в БД;\n" +
                 $"/val_usd - курс валюты;\n" +
                 $"/auto_val_on - включить автоперевод валют;\n" +
-                $"/auto_val_off - отключить автоперевод валют;\n";
+                $"/auto_val_off - отключить автоперевод валют;\n" +
+                $"/auto_weather_loc_on - включить погоду по геопозиции;\n" +
+                $"/auto_weather_loc_off - отключить погоду по геопозиции;\n";
 
             InlineKeyboardMarkup inlineKeyboard = new(new[] { InlineKeyboardButton.WithUrl(text: "Подробное описание команд ➡️", url: "https://evgeny-fidel.ru/cmdtgbotded/") });
             Message sentMessage = await botClient.SendTextMessageAsync(message.Chat.Id, Text, replyMarkup: inlineKeyboard, disableNotification: true);
@@ -1767,6 +1790,46 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDGroup SET auto_currency = '1' WHERE id = '{message.Chat.Id}';";
+                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                command.ExecuteNonQuery();
+                var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
+                await Task.Delay(1000);
+                await botClient.DeleteMessageAsync(message.Chat.Id, mes.MessageId);
+            }
+            catch
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Что-то пошло не так.. Попробуйте чуточку позже!)", disableNotification: true);
+            }
+            MySqlBase.Close();
+            return;
+        }
+        if (message.Text.StartsWith("/auto_weather_loc_off"))
+        {
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            try
+            {
+                MySqlBase.Open();
+                string cmdsql = $"UPDATE BDGroup SET auto_weather_loc = '0' WHERE id = '{message.Chat.Id}';";
+                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                command.ExecuteNonQuery();
+                var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
+                await Task.Delay(1000);
+                await botClient.DeleteMessageAsync(message.Chat.Id, mes.MessageId);
+            }
+            catch
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Что-то пошло не так.. Попробуйте чуточку позже!)", disableNotification: true);
+            }
+            MySqlBase.Close();
+            return;
+        }
+        if (message.Text.StartsWith("/auto_weather_loc_on"))
+        {
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            try
+            {
+                MySqlBase.Open();
+                string cmdsql = $"UPDATE BDGroup SET auto_weather_loc = '1' WHERE id = '{message.Chat.Id}';";
                 MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
@@ -2474,7 +2537,7 @@ async Task HandlePhoto(ITelegramBotClient botClient, Message message)
             MySqlBase.Close();
             return;
         }
-        
+
         await MessageParsing(message);
         return;
     }
@@ -2535,6 +2598,111 @@ async Task HandleMember(ITelegramBotClient botClient, Update update, Message mes
     return;
 }
 
+async Task HandleLocation(ITelegramBotClient botClient, Message message)
+{
+    if (WeatherLoc == true)
+    {
+        bool chek = false;
+        if (message.Chat.Type == ChatType.Private) { chek = true; }
+        else
+        {
+            try
+            {
+                MySqlBase.Open();
+                string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
+                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var Auto_currency = reader.GetString("auto_weather_loc");
+                    if (Auto_currency == "True")
+                    {
+                        chek = true;
+                    }
+                }
+            }
+            catch { }
+        }
+        if (chek == true)
+        {
+            try
+            {
+                var Lat = message.Location.Latitude;
+                var Lon = message.Location.Longitude;
+                string url = $"https://api.openweathermap.org/data/2.5/weather?lat={Lat}&lon={Lon}&units=metric&mode=xml&appid={TokenWeather}&lang=ru";
+                //https://api.openweathermap.org/data/2.5/weather?lat=36.92928&lon=30.701937&units=metric&mode=xml&appid=66c03fe8ef1ef87c9a5fb4104d848418&lang=ru
+                string Smiley = "";
+                string SmileyWeather = "";
+
+                WebClient client = new WebClient();
+                var xml = client.DownloadString(url);
+                XDocument xdoc = XDocument.Parse(xml);
+                XElement? Temperature = xdoc.Element("current").Element("temperature");
+                XAttribute? TemperatureVal = Temperature.Attribute("value");
+
+                XElement? Weather = xdoc.Element("current").Element("weather");
+                XAttribute? WeatherVal = Weather.Attribute("value");
+
+                XElement? Humidity = xdoc.Element("current").Element("humidity");
+                XAttribute? HumidityVal = Humidity.Attribute("value");
+
+                XElement? Pressure = xdoc.Element("current").Element("pressure");
+                XAttribute? PressureVal = Pressure.Attribute("value");
+                double PressureValue = Convert.ToDouble(PressureVal.Value) * 0.750064;
+                PressureValue = Math.Round(PressureValue, 0);
+
+                XElement? Wind = xdoc.Element("current").Element("wind").Element("speed");
+                XAttribute? WindVal = Wind.Attribute("value");
+
+                var WeatherValue = WeatherVal.Value;
+                double Temp = 0;
+                try
+                {
+                    Temp = Convert.ToDouble(TemperatureVal.Value);
+                }
+                catch { }
+
+                Temp = Math.Round(Temp, 0);
+                if (Temp == -0)
+                {
+                    Temp = 0;
+                }
+
+                if (Temp <= -15) { Smiley = "🥶"; }
+                if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
+                if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
+                if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
+                if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
+                if (Temp > 5 && Temp <= 10) { Smiley = "😏"; }
+                if (Temp > 10 && Temp <= 20) { Smiley = "😌"; }
+                if (Temp > 20 && Temp <= 25) { Smiley = "☺️"; }
+                if (Temp > 25) { Smiley = "🥵"; }
+
+                if (WeatherValue == "ясно") { SmileyWeather = "☀️"; }
+                if (WeatherValue == "небольшая облачность" || WeatherValue == "переменная облачность") { SmileyWeather = "🌤"; }
+                if (WeatherValue == "облачно с прояснениями") { SmileyWeather = "🌥"; }
+                if (WeatherValue == "пасмурно") { SmileyWeather = "☁️"; }
+                if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
+                if (WeatherValue == "небольшой проливной дождь") { SmileyWeather = "🌧"; }
+                if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
+                if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад") { SmileyWeather = "🌨"; }
+                if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
+                if (WeatherValue == "туман" || WeatherValue == "плотный туман") { SmileyWeather = "🌫"; }
+
+                if (SmileyWeather == "") { SmileyWeather = "❔"; }
+
+                try { WeatherValue = WeatherValue.Substring(0, 1).ToUpper() + WeatherValue.Substring(1); } catch { }
+                string Text = $"{Smiley} В данном районе: {Temp}°C\n💦 Влажность: {HumidityVal.Value}%\n🧭 Давление: {PressureValue} мм рт. ст.\n💨 Скорость ветра: {WindVal.Value} м/с\n{SmileyWeather} {WeatherValue}";
+
+                await botClient.SendTextMessageAsync(message.Chat, Text, disableNotification: true, replyToMessageId: message.MessageId);
+            }
+            catch { }
+        }
+    }
+    MySqlBase.Close();
+    return;
+}
+
 Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
 {
     var ErrorMessage = exception switch
@@ -2589,10 +2757,10 @@ async Task MessageParsing(Message message)
         DoubleText = DoubleText.Replace("\n", " ");
         string[] Text = DoubleText.Split(' ');
         string FinalMessage = "";
-        
+
         for (int i = 0; i < Text.Length; i++)
         {
-            if (AutoTRYRUB == true)
+            if (AutoValRUB == true)
             {
                 try
                 {
@@ -2659,7 +2827,7 @@ async Task MessageParsing(Message message)
         }
         else
         {
-            if (message.Chat.Type == ChatType.Private)
+            if (message.Chat.Type == ChatType.Private && message.Document == null)
             {
                 await botClient.SendTextMessageAsync(message.Chat, "Я не понял, что ты хочешь =(\nПопробуй написать иначе!\n/start - команда для перезапуска;", disableNotification: true);
             }
