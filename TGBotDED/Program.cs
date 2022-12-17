@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.5";
+var version = "0.3.6";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -1534,8 +1534,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         }
 
 
-        await MessageParsing(message);
-        return;
+        
     }
     // Ниже только для групп и супергрупп
     if (message.Chat.Type == ChatType.Group || message.Chat.Type == ChatType.Supergroup)
@@ -1844,7 +1843,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             return;
         }
     }
-
+    await MessageParsing(message);
     MySqlBase.Close();
     return;
 }
