@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.7";
+var version = "0.3.8";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -1533,8 +1533,6 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             return;
         }
 
-
-        
     }
     // Ниже только для групп и супергрупп
     if (message.Chat.Type == ChatType.Group || message.Chat.Type == ChatType.Supergroup)
@@ -1765,6 +1763,12 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         if (message.Text.StartsWith("/auto_val_off"))
         {
             try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            ChatMember chatMemberYou = await botClient.GetChatMemberAsync(message.Chat.Id, message.From.Id);
+            if (chatMemberYou.Status != ChatMemberStatus.Administrator && chatMemberYou.Status != ChatMemberStatus.Creator)
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Данная команда предназначена только для администрации чата..", disableNotification: true);
+                return;
+            }
             try
             {
                 MySqlBase.Open();
@@ -1785,6 +1789,12 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         if (message.Text.StartsWith("/auto_val_on"))
         {
             try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            ChatMember chatMemberYou = await botClient.GetChatMemberAsync(message.Chat.Id, message.From.Id);
+            if (chatMemberYou.Status != ChatMemberStatus.Administrator && chatMemberYou.Status != ChatMemberStatus.Creator)
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Данная команда предназначена только для администрации чата..", disableNotification: true);
+                return;
+            }
             try
             {
                 MySqlBase.Open();
@@ -1805,6 +1815,12 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         if (message.Text.StartsWith("/auto_weather_loc_off"))
         {
             try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            ChatMember chatMemberYou = await botClient.GetChatMemberAsync(message.Chat.Id, message.From.Id);
+            if (chatMemberYou.Status != ChatMemberStatus.Administrator && chatMemberYou.Status != ChatMemberStatus.Creator)
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Данная команда предназначена только для администрации чата..", disableNotification: true);
+                return;
+            }
             try
             {
                 MySqlBase.Open();
@@ -1825,6 +1841,12 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         if (message.Text.StartsWith("/auto_weather_loc_on"))
         {
             try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            ChatMember chatMemberYou = await botClient.GetChatMemberAsync(message.Chat.Id, message.From.Id);
+            if (chatMemberYou.Status != ChatMemberStatus.Administrator && chatMemberYou.Status != ChatMemberStatus.Creator)
+            {
+                await botClient.SendTextMessageAsync(message.Chat, $"Данная команда предназначена только для администрации чата..", disableNotification: true);
+                return;
+            }
             try
             {
                 MySqlBase.Open();
@@ -2717,43 +2739,35 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
 
 void showTime(Object obj)
 {
-    //Console.WriteLine($"Проверка обновлений | Auto_Update_Minute = {AutoUpdateMinete} | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
     try
     {
-        //ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
         using (var client = new WebClient())
-        using (var stream = client.OpenRead("http://www.google.com"))
-            if (client.DownloadString("https://gaffer-prog.evgeny-fidel.ru/tgbotded/").Contains(version) != true)
+        {
+            string latestVersion = client.DownloadString("https://gaffer-prog.evgeny-fidel.ru/tgbotded/");
+            if (!latestVersion.Contains(version))
             {
-                try
-                {
-                    Console.WriteLine("Вышла новая версия бота! Начинаем обновление..");
-                    client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/386/", DirectoryProg + @"/Update TGBotDED.zip");
-                    client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/110/", DirectoryProg + @"/UpdaterProg.exe");
-                    Process.Start(DirectoryProg + @"/UpdaterProg.exe");
-                    Environment.Exit(0);
-                    //Console.WriteLine($"Версия не актуальная! | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
-                }
-                catch { }
+                Console.WriteLine("Вышла новая версия бота! Начинаем обновление..");
+                client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/386/", DirectoryProg + @"/Update TGBotDED.zip");
+                client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/110/", DirectoryProg + @"/UpdaterProg.exe");
+                Process.Start(DirectoryProg + @"/UpdaterProg.exe");
+                Environment.Exit(0);
             }
-            else
-            {
-                //Console.WriteLine($"Версия актуальная! | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
-            }
+        }
     }
-    catch { }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Произошла ошибка при проверке наличия новой версии: " + ex.Message);
+    }
 }
 
 async Task MessageParsing(Message message)
 {
     bool chek = false;
-    string DoubleText = $"";
     try
     {
-        if (message.Text != null) { DoubleText = DoubleText + message.Text; }
-        if (message.Caption != null) { DoubleText = DoubleText + message.Caption; }
-        DoubleText = DoubleText.Replace("\n", " ");
-        string[] Text = DoubleText.Split(' ');
+        string FullText = message.Text ?? message.Caption ?? "";
+        FullText = FullText.Replace("\n", " ");
+        string[] Text = FullText.Split(' ');
         string FinalMessage = "";
 
         for (int i = 0; i < Text.Length; i++)
@@ -2766,33 +2780,54 @@ async Task MessageParsing(Message message)
                     string IDCirrency = "";
                     string Flag = "";
                     float Mng = 1;
-                    int chekVal = 0;
+                    bool chekVal = false;
+                    string val = Text[i - 1];
+
+                    try
+                    {
+                        Mng = Convert.ToSingle(val.Replace(",", "."));
+                    }
+                    catch
+                    {
+                        if (val.Contains(','))
+                        {
+                            val = val.Replace($"кк", "00000");
+                            val = val.Replace($"к", "00");
+                        }
+                        else
+                        {
+                            val = val.Replace($"к", "000");
+                        }
+                        val = val.Replace($",", "");
+                        val = val.Replace($".", "");
+                        Mng = Convert.ToSingle(val.Replace(",", "."));
+                    }
+
+                    if(val == "000") { continue; }
+                    
                     if (Text[i].StartsWith("лир"))
                     {
-                        Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
                         Icon = "₺";
                         IDCirrency = "R01700J";
                         Flag = "🇹🇷";
-                        chekVal++;
+                        chekVal = true;
                     }
                     if (Text[i].StartsWith("доллар") || Text[i].StartsWith("бачей") || Text[i].StartsWith("бакс"))
                     {
-                        Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
                         Icon = "$";
                         IDCirrency = "R01235";
                         Flag = "🇺🇸";
-                        chekVal++;
+                        chekVal = true;
                     }
                     if (Text[i] == "евро" || Text[i].StartsWith("еврик"))
                     {
-                        Mng = Convert.ToSingle(Text[i - 1].Replace(",", "."));
                         Icon = "€";
                         IDCirrency = "R01239";
                         Flag = "🇪🇺";
-                        chekVal++;
+                        chekVal = true;
                     }
-                    if (message.Chat.Type == ChatType.Private) { chek = true; } else { if (chekVal > 0) { ChekBDAutoCurrency(); } }
-                    if (chekVal > 0 && chek == true)
+                    if (message.Chat.Type == ChatType.Private) { chek = true; } else { if (chekVal == true) { ChekBDAutoCurrency(); } }
+                    if (chekVal == true && chek == true)
                     {
                         WebClient client = new WebClient();
                         var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
