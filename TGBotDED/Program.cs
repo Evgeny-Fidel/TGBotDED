@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.8";
+var version = "0.3.9";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -135,6 +135,18 @@ else
         "");
 }
 
+string DirectoryLogs = $"{DirectorySettings}/Logs";
+string LogFileUpdate = $"{DirectoryLogs}/Update.txt";
+string LogFileErrorTGAPI = $"{DirectoryLogs}/Telegram_API.txt";
+string LogFilePrivatMessage = $"{DirectoryLogs}/Privat_Message.txt";
+if (Logs == true)
+{
+    Directory.CreateDirectory(DirectoryLogs);
+    System.IO.File.AppendAllText(LogFileUpdate, $"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начало логирования..\n");
+    System.IO.File.AppendAllText(LogFileErrorTGAPI, $"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начало логирования..\n");
+    System.IO.File.AppendAllText(LogFilePrivatMessage, $"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начало логирования..\n");
+}
+
 var botClient = new TelegramBotClient(TokenTelegramAPI);
 using var cts = new CancellationTokenSource();
 Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
@@ -180,33 +192,27 @@ cts.Cancel();
 
 async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
 {
-    var rrr = update.Message;
     if (update.Type == UpdateType.Message && update?.Message?.Text != null)
     {
         await HandleMessage(botClient, update, update.Message);
-        return;
     }
     if (update.Type == UpdateType.Message && update?.Message?.Document != null)
     {
         await HandleDocument(botClient, update.Message);
-        return;
     }
     if (update.Type == UpdateType.Message && update?.Message?.Photo != null)
     {
         await HandlePhoto(botClient, update.Message);
-        return;
     }
     if (update.Type == UpdateType.CallbackQuery)
     {
         await HandleCallbackQuery(botClient, update.CallbackQuery);
-        return;
     }
     if (update.MyChatMember != null)
     {
         if (update.MyChatMember.NewChatMember.Status == ChatMemberStatus.Administrator)
         {
             await HandleMember(botClient, update, update.Message);
-            return;
         }
     }
     if (update.Message != null)
@@ -214,12 +220,10 @@ async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, Cancel
         if (update.Message.Type == MessageType.ChatTitleChanged)
         {
             await HandleMember(botClient, update, update.Message);
-            return;
         }
         if (update.Message.Type == MessageType.Location)
         {
             await HandleLocation(botClient, update.Message);
-            return;
         }
     }
     return;
@@ -288,7 +292,12 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         if (Logs == true)
         {
             string TextMes = message.Text;
-            Console.WriteLine($"{message.From.Id} - @{message.From.Username} | Сообщение | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {TextMes.Replace("\n", " ")}");
+            Console.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {message.From.Id} - @{message.From.Username} | {TextMes.Replace("\n", " ")}");
+            using(var File = new StreamWriter(LogFilePrivatMessage, true))
+            {
+                File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {message.From.Id} - @{message.From.Username} | {TextMes.Replace("\n", " ")}");
+            }
+
         }
         if (message.Text.StartsWith("/say_all_users_test "))
         {
@@ -788,297 +797,297 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 || message.Text == buttonRUBtoKRW.ToLower()
                 || message.Text == buttonRUBtoJPY.ToLower())
             {
-                var mes = await botClient.SendTextMessageAsync(message.Chat, "Секунду, взламываю сайта ЦБ, чтобы узнать для Вас курс! 📊", disableNotification: true);
-                try
-                {
-                    try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
-                    string Value = "";
-                    string Icon = "";
-                    string IDCirrency = "";
-                    string Nominal = "";
-                    string Name = "";
+                    var mes = await botClient.SendTextMessageAsync(message.Chat, "Секунду, взламываю сайта ЦБ, чтобы узнать для Вас курс! 📊", disableNotification: true);
+                    try
+                    {
+                        try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+                        string Value = "";
+                        string Icon = "";
+                        string IDCirrency = "";
+                        string Nominal = "";
+                        string Name = "";
 
-                    int ChekMes = 0;
+                        int ChekMes = 0;
 
-                    if (message.Text.StartsWith("/val_aud") || message.Text == buttonRUBtoAUD.ToLower())
-                    {
-                        Icon = "$";
-                        IDCirrency = "R01010";
-                        Name = buttonRUBtoAUD;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_azn") || message.Text == buttonRUBtoAZN.ToLower())
-                    {
-                        Icon = "₼";
-                        IDCirrency = "R01020A";
-                        Name = buttonRUBtoAZN;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_gbp") || message.Text == buttonRUBtoGBP.ToLower())
-                    {
-                        Icon = "£";
-                        IDCirrency = "R01035";
-                        Name = buttonRUBtoGBP;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_amd") || message.Text == buttonRUBtoAMD.ToLower())
-                    {
-                        Icon = "֏";
-                        IDCirrency = "R01060";
-                        Name = buttonRUBtoAMD;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_byn") || message.Text == buttonRUBtoBYN.ToLower())
-                    {
-                        Icon = "Br";
-                        IDCirrency = "R01090B";
-                        Name = buttonRUBtoBYN;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_bgn") || message.Text == buttonRUBtoBGN.ToLower())
-                    {
-                        Icon = "BGN";
-                        IDCirrency = "R01100";
-                        Name = buttonRUBtoBGN;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_brl") || message.Text == buttonRUBtoBRL.ToLower())
-                    {
-                        Icon = "R$";
-                        IDCirrency = "R01115";
-                        Name = buttonRUBtoBRL;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_huf") || message.Text == buttonRUBtoHUF.ToLower())
-                    {
-                        Icon = "F";
-                        IDCirrency = "R01135";
-                        Name = buttonRUBtoHUF;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_hkd") || message.Text == buttonRUBtoHKD.ToLower())
-                    {
-                        Icon = "HK$";
-                        IDCirrency = "R01200";
-                        Name = buttonRUBtoHKD;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_dkk") || message.Text == buttonRUBtoDKK.ToLower())
-                    {
-                        Icon = "Kr";
-                        IDCirrency = "R01215";
-                        Name = buttonRUBtoDKK;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_usd") || message.Text == buttonRUBtoUSD.ToLower())
-                    {
-                        Icon = "$";
-                        IDCirrency = "R01235";
-                        Name = buttonRUBtoUSD;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_eur") || message.Text == buttonRUBtoEUR.ToLower())
-                    {
-                        Icon = "€";
-                        IDCirrency = "R01239";
-                        Name = buttonRUBtoEUR;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_inr") || message.Text == buttonRUBtoINR.ToLower())
-                    {
-                        Icon = "₹";
-                        IDCirrency = "R01270";
-                        Name = buttonRUBtoINR;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_kzt") || message.Text == buttonRUBtoKZT.ToLower())
-                    {
-                        Icon = "₸";
-                        IDCirrency = "R01335";
-                        Name = buttonRUBtoKZT;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_cad") || message.Text == buttonRUBtoCAD.ToLower())
-                    {
-                        Icon = "$";
-                        IDCirrency = "R01350";
-                        Name = buttonRUBtoCAD;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_kgs") || message.Text == buttonRUBtoKGS.ToLower())
-                    {
-                        Icon = "с";
-                        IDCirrency = "R01370";
-                        Name = buttonRUBtoKGS;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_cny") || message.Text == buttonRUBtoCNY.ToLower())
-                    {
-                        Icon = "Y";
-                        IDCirrency = "R01375";
-                        Name = buttonRUBtoCNY;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_mdl") || message.Text == buttonRUBtoMDL.ToLower())
-                    {
-                        Icon = "L";
-                        IDCirrency = "R01500";
-                        Name = buttonRUBtoMDL;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_nok") || message.Text == buttonRUBtoNOK.ToLower())
-                    {
-                        Icon = "NKr";
-                        IDCirrency = "R01535";
-                        Name = buttonRUBtoNOK;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_pln") || message.Text == buttonRUBtoPLN.ToLower())
-                    {
-                        Icon = "zł";
-                        IDCirrency = "R01565";
-                        Name = buttonRUBtoPLN;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_ron") || message.Text == buttonRUBtoRON.ToLower())
-                    {
-                        Icon = "L";
-                        IDCirrency = "R01585F";
-                        Name = buttonRUBtoRON;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_xdr") || message.Text == buttonRUBtoXDR.ToLower())
-                    {
-                        Icon = "XDR";
-                        IDCirrency = "R01589";
-                        Name = buttonRUBtoXDR;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_sgd") || message.Text == buttonRUBtoSGD.ToLower())
-                    {
-                        Icon = "S$";
-                        IDCirrency = "R01625";
-                        Name = buttonRUBtoSGD;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_tjs") || message.Text == buttonRUBtoTJS.ToLower())
-                    {
-                        Icon = "с";
-                        IDCirrency = "R01670";
-                        Name = buttonRUBtoTJS;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_try") || message.Text == buttonRUBtoTRY.ToLower())
-                    {
-                        Icon = "₺";
-                        IDCirrency = "R01700J";
-                        Name = buttonRUBtoTRY;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_tmt") || message.Text == buttonRUBtoTMT.ToLower())
-                    {
-                        Icon = "T";
-                        IDCirrency = "R01710A";
-                        Name = buttonRUBtoTMT;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_uzs") || message.Text == buttonRUBtoUZS.ToLower())
-                    {
-                        Icon = "UZS";
-                        IDCirrency = "R01717";
-                        Name = buttonRUBtoUZS;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_uah") || message.Text == buttonRUBtoUAH.ToLower())
-                    {
-                        Icon = "₴";
-                        IDCirrency = "R01720";
-                        Name = buttonRUBtoUAH;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_czk") || message.Text == buttonRUBtoCZK.ToLower())
-                    {
-                        Icon = "Kč";
-                        IDCirrency = "R01760";
-                        Name = buttonRUBtoCZK;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_sek") || message.Text == buttonRUBtoSEK.ToLower())
-                    {
-                        Icon = "kr";
-                        IDCirrency = "R01770";
-                        Name = buttonRUBtoSEK;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_chk") || message.Text == buttonRUBtoCHF.ToLower())
-                    {
-                        Icon = "₣";
-                        IDCirrency = "R01775";
-                        Name = buttonRUBtoCHF;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_zar") || message.Text == buttonRUBtoZAR.ToLower())
-                    {
-                        Icon = "R";
-                        IDCirrency = "R01810";
-                        Name = buttonRUBtoZAR;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_krw") || message.Text == buttonRUBtoKRW.ToLower())
-                    {
-                        Icon = "₩";
-                        IDCirrency = "R01815";
-                        Name = buttonRUBtoKRW;
-                        ChekMes++;
-                    }
-                    if (message.Text.StartsWith("/val_jpy") || message.Text == buttonRUBtoJPY.ToLower())
-                    {
-                        Icon = "¥";
-                        IDCirrency = "R01820";
-                        Name = buttonRUBtoJPY;
-                        ChekMes++;
-                    }
-
-                    if (ChekMes > 0)
-                    {
-                        var SplitVal = message.Text.Split(' ').Last();
-                        float Mng = 1;
-                        try
+                        if (message.Text.StartsWith("/val_aud") || message.Text == buttonRUBtoAUD.ToLower())
                         {
-                            Mng = Convert.ToSingle(SplitVal.Replace(",", "."));
+                            Icon = "$";
+                            IDCirrency = "R01010";
+                            Name = buttonRUBtoAUD;
+                            ChekMes++;
                         }
-                        catch { }
-
-                        WebClient client = new WebClient();
-                        var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
-                        XDocument xdoc = XDocument.Parse(xml);
-                        var el = xdoc.Element("ValCurs").Elements("Valute");
-                        Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
-                        Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
-                        Value = Value.Substring(0, Value.Length - 2);
-
-                        double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
-                        int NominalCor = Convert.ToInt32(Nominal);
-                        if (NominalCor > 1)
+                        if (message.Text.StartsWith("/val_azn") || message.Text == buttonRUBtoAZN.ToLower())
                         {
-                            ValueCor = ValueCor / NominalCor;
+                            Icon = "₼";
+                            IDCirrency = "R01020A";
+                            Name = buttonRUBtoAZN;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_gbp") || message.Text == buttonRUBtoGBP.ToLower())
+                        {
+                            Icon = "£";
+                            IDCirrency = "R01035";
+                            Name = buttonRUBtoGBP;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_amd") || message.Text == buttonRUBtoAMD.ToLower())
+                        {
+                            Icon = "֏";
+                            IDCirrency = "R01060";
+                            Name = buttonRUBtoAMD;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_byn") || message.Text == buttonRUBtoBYN.ToLower())
+                        {
+                            Icon = "Br";
+                            IDCirrency = "R01090B";
+                            Name = buttonRUBtoBYN;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_bgn") || message.Text == buttonRUBtoBGN.ToLower())
+                        {
+                            Icon = "BGN";
+                            IDCirrency = "R01100";
+                            Name = buttonRUBtoBGN;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_brl") || message.Text == buttonRUBtoBRL.ToLower())
+                        {
+                            Icon = "R$";
+                            IDCirrency = "R01115";
+                            Name = buttonRUBtoBRL;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_huf") || message.Text == buttonRUBtoHUF.ToLower())
+                        {
+                            Icon = "F";
+                            IDCirrency = "R01135";
+                            Name = buttonRUBtoHUF;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_hkd") || message.Text == buttonRUBtoHKD.ToLower())
+                        {
+                            Icon = "HK$";
+                            IDCirrency = "R01200";
+                            Name = buttonRUBtoHKD;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_dkk") || message.Text == buttonRUBtoDKK.ToLower())
+                        {
+                            Icon = "Kr";
+                            IDCirrency = "R01215";
+                            Name = buttonRUBtoDKK;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_usd") || message.Text == buttonRUBtoUSD.ToLower())
+                        {
+                            Icon = "$";
+                            IDCirrency = "R01235";
+                            Name = buttonRUBtoUSD;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_eur") || message.Text == buttonRUBtoEUR.ToLower())
+                        {
+                            Icon = "€";
+                            IDCirrency = "R01239";
+                            Name = buttonRUBtoEUR;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_inr") || message.Text == buttonRUBtoINR.ToLower())
+                        {
+                            Icon = "₹";
+                            IDCirrency = "R01270";
+                            Name = buttonRUBtoINR;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_kzt") || message.Text == buttonRUBtoKZT.ToLower())
+                        {
+                            Icon = "₸";
+                            IDCirrency = "R01335";
+                            Name = buttonRUBtoKZT;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_cad") || message.Text == buttonRUBtoCAD.ToLower())
+                        {
+                            Icon = "$";
+                            IDCirrency = "R01350";
+                            Name = buttonRUBtoCAD;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_kgs") || message.Text == buttonRUBtoKGS.ToLower())
+                        {
+                            Icon = "с";
+                            IDCirrency = "R01370";
+                            Name = buttonRUBtoKGS;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_cny") || message.Text == buttonRUBtoCNY.ToLower())
+                        {
+                            Icon = "Y";
+                            IDCirrency = "R01375";
+                            Name = buttonRUBtoCNY;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_mdl") || message.Text == buttonRUBtoMDL.ToLower())
+                        {
+                            Icon = "L";
+                            IDCirrency = "R01500";
+                            Name = buttonRUBtoMDL;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_nok") || message.Text == buttonRUBtoNOK.ToLower())
+                        {
+                            Icon = "NKr";
+                            IDCirrency = "R01535";
+                            Name = buttonRUBtoNOK;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_pln") || message.Text == buttonRUBtoPLN.ToLower())
+                        {
+                            Icon = "zł";
+                            IDCirrency = "R01565";
+                            Name = buttonRUBtoPLN;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_ron") || message.Text == buttonRUBtoRON.ToLower())
+                        {
+                            Icon = "L";
+                            IDCirrency = "R01585F";
+                            Name = buttonRUBtoRON;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_xdr") || message.Text == buttonRUBtoXDR.ToLower())
+                        {
+                            Icon = "XDR";
+                            IDCirrency = "R01589";
+                            Name = buttonRUBtoXDR;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_sgd") || message.Text == buttonRUBtoSGD.ToLower())
+                        {
+                            Icon = "S$";
+                            IDCirrency = "R01625";
+                            Name = buttonRUBtoSGD;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_tjs") || message.Text == buttonRUBtoTJS.ToLower())
+                        {
+                            Icon = "с";
+                            IDCirrency = "R01670";
+                            Name = buttonRUBtoTJS;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_try") || message.Text == buttonRUBtoTRY.ToLower())
+                        {
+                            Icon = "₺";
+                            IDCirrency = "R01700J";
+                            Name = buttonRUBtoTRY;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_tmt") || message.Text == buttonRUBtoTMT.ToLower())
+                        {
+                            Icon = "T";
+                            IDCirrency = "R01710A";
+                            Name = buttonRUBtoTMT;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_uzs") || message.Text == buttonRUBtoUZS.ToLower())
+                        {
+                            Icon = "UZS";
+                            IDCirrency = "R01717";
+                            Name = buttonRUBtoUZS;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_uah") || message.Text == buttonRUBtoUAH.ToLower())
+                        {
+                            Icon = "₴";
+                            IDCirrency = "R01720";
+                            Name = buttonRUBtoUAH;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_czk") || message.Text == buttonRUBtoCZK.ToLower())
+                        {
+                            Icon = "Kč";
+                            IDCirrency = "R01760";
+                            Name = buttonRUBtoCZK;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_sek") || message.Text == buttonRUBtoSEK.ToLower())
+                        {
+                            Icon = "kr";
+                            IDCirrency = "R01770";
+                            Name = buttonRUBtoSEK;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_chk") || message.Text == buttonRUBtoCHF.ToLower())
+                        {
+                            Icon = "₣";
+                            IDCirrency = "R01775";
+                            Name = buttonRUBtoCHF;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_zar") || message.Text == buttonRUBtoZAR.ToLower())
+                        {
+                            Icon = "R";
+                            IDCirrency = "R01810";
+                            Name = buttonRUBtoZAR;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_krw") || message.Text == buttonRUBtoKRW.ToLower())
+                        {
+                            Icon = "₩";
+                            IDCirrency = "R01815";
+                            Name = buttonRUBtoKRW;
+                            ChekMes++;
+                        }
+                        if (message.Text.StartsWith("/val_jpy") || message.Text == buttonRUBtoJPY.ToLower())
+                        {
+                            Icon = "¥";
+                            IDCirrency = "R01820";
+                            Name = buttonRUBtoJPY;
+                            ChekMes++;
+                        }
+
+                        if (ChekMes > 0)
+                        {
+                            var SplitVal = message.Text.Split(' ').Last();
+                            float Mng = 1;
+                            try
+                            {
+                                Mng = Convert.ToSingle(SplitVal.Replace(",", "."));
+                            }
+                            catch { }
+
+                            WebClient client = new WebClient();
+                            var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
+                            XDocument xdoc = XDocument.Parse(xml);
+                            var el = xdoc.Element("ValCurs").Elements("Valute");
+                            Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
+                            Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
+                            Value = Value.Substring(0, Value.Length - 2);
+
+                            double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
+                            int NominalCor = Convert.ToInt32(Nominal);
+                            if (NominalCor > 1)
+                            {
+                                ValueCor = ValueCor / NominalCor;
+                                ValueCor = Math.Round(ValueCor, 2);
+                            }
+                            ValueCor = ValueCor * Mng;
                             ValueCor = Math.Round(ValueCor, 2);
+                            Value = Convert.ToString(ValueCor).Replace(".", ",");
+                            string CorMng = Convert.ToString(Mng).Replace(".", ",");
+                            await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"{CorMng}{Icon} = {Value}₽\n{Name}");
                         }
-                        ValueCor = ValueCor * Mng;
-                        ValueCor = Math.Round(ValueCor, 2);
-                        Value = Convert.ToString(ValueCor).Replace(".", ",");
-                        string CorMng = Convert.ToString(Mng).Replace(".", ",");
-                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"{CorMng}{Icon} = {Value}₽\n{Name}");
+                        else
+                        {
+                            await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"Такую валюту я не умею обрабатывать 😔");
+                        }
                     }
-                    else
+                    catch
                     {
-                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"Такую валюту я не умею обрабатывать 😔");
+                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"К сожалению произошла ошибка, попробуйте чуточку позже 😔");
                     }
-                }
-                catch
-                {
-                    await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"К сожалению произошла ошибка, попробуйте чуточку позже 😔");
-                }
                 return;
             }
         }
@@ -2732,6 +2741,13 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
         _ => exception.ToString()
     };
 
+    if (Logs == true)
+    {
+        using (var File = new StreamWriter(LogFileErrorTGAPI, true))
+        {
+            File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {ErrorMessage}");
+        }
+    }
     Console.WriteLine(ErrorMessage);
     return Task.CompletedTask;
 
@@ -2739,6 +2755,13 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
 
 void showTime(Object obj)
 {
+    if(Logs == true)
+    {
+        using (var File = new StreamWriter(LogFileUpdate, true))
+        {
+            File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начинаем проверку наличия новых версий..");
+        }
+    }
     try
     {
         using (var client = new WebClient())
@@ -2746,17 +2769,47 @@ void showTime(Object obj)
             string latestVersion = client.DownloadString("https://gaffer-prog.evgeny-fidel.ru/tgbotded/");
             if (!latestVersion.Contains(version))
             {
+                if (Logs == true)
+                {
+                    using (var File = new StreamWriter(LogFileUpdate, true))
+                    {
+                        File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Вышла новая версия, пробуем скачать..");
+                    }
+                }
                 Console.WriteLine("Вышла новая версия бота! Начинаем обновление..");
                 client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/386/", DirectoryProg + @"/Update TGBotDED.zip");
                 client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/110/", DirectoryProg + @"/UpdaterProg.exe");
+                if (Logs == true)
+                {
+                    using (var File = new StreamWriter(LogFileUpdate, true))
+                    {
+                        File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Файлы обновления успешно скачались, пробуем обновиться..");
+                    }
+                }
                 Process.Start(DirectoryProg + @"/UpdaterProg.exe");
                 Environment.Exit(0);
+            }
+            else
+            {
+                if (Logs == true)
+                {
+                    using (var File = new StreamWriter(LogFileUpdate, true))
+                    {
+                        File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Новых версий нет, работаем в прежнем режиме..");
+                    }
+                }
             }
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Произошла ошибка при проверке наличия новой версии: " + ex.Message);
+        if (Logs == true)
+        {
+            using (var File = new StreamWriter(LogFileUpdate, true))
+            {
+                File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Произошла ошибка: {ex.Message}");
+            }
+        }
     }
 }
 
