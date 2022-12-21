@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.3.9";
+var version = "0.4.0";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -160,13 +160,13 @@ MySqlConnection MySqlBase = new MySqlConnection(connStr);
 try
 {
     MySqlBase.Open();
-    Console.WriteLine($"Успешное подключение к БД");
+    Console.WriteLine($"Успешное подключение к БД =)");
     MySqlBase.Close();
 }
 catch
 {
     MySqlBase.Close();
-    Console.WriteLine($"Не удалось подключиться к БД");
+    Console.WriteLine($"Не удалось подключиться к БД =(");
 }
 
 botClient.StartReceiving(HandleUpdateAsync, HandlePollingErrorAsync, receiverOptions, cts.Token);
@@ -645,8 +645,6 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             try
             {
                 try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
-                string Smiley = "";
-                string SmileyWeather = "";
                 string Country = "";
                 string City = "";
                 string Lat = "";
@@ -691,6 +689,8 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     }
                     if (ChekPog > 0)
                     {
+                        string Smiley = "";
+                        string SmileyWeather = "";
                         string url = $"https://api.openweathermap.org/data/2.5/weather?lat={Lat}&lon={Lon}&units=metric&mode=xml&appid={TokenWeather}&lang=ru";
 
                         WebClient client = new WebClient();
@@ -731,7 +731,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         if (WeatherValue == "облачно с прояснениями") { SmileyWeather = "🌥"; }
                         if (WeatherValue == "пасмурно") { SmileyWeather = "☁️"; }
                         if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
-                        if (WeatherValue == "небольшой проливной дождь") { SmileyWeather = "🌧"; }
+                        if (WeatherValue == "небольшой проливной дождь" || WeatherValue == "сильный дождь") { SmileyWeather = "🌧"; }
                         if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
                         if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад") { SmileyWeather = "🌨"; }
                         if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
@@ -2811,6 +2811,7 @@ void showTime(Object obj)
             }
         }
     }
+    GC.Collect();
 }
 
 async Task MessageParsing(Message message)
