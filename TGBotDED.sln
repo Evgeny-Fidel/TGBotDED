@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33110.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TGBotDED", "TGBotDED\TGBotDED.csproj", "{268FD664-B611-4612-AF59-D5520DCD6366}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TGBotDED", "TGBotDED\TGBotDED.csproj", "{268FD664-B611-4612-AF59-D5520DCD6366}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7E731EF6-501D-4979-A584-709A111FC0A4}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.4.0";
+var version = "0.4.1";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -28,10 +28,16 @@ bool WeatherLoc = true;     // Включение/отключение отпр�
 
 string DirectoryProg = Environment.CurrentDirectory;
 string DirectorySettings = $"{DirectoryProg}/Settings";
+string DirectoryLogs = $"{DirectorySettings}/Logs";
+string LogFileUpdate = $"{DirectoryLogs}/Update.txt";
+string LogFileErrorTGAPI = $"{DirectoryLogs}/Telegram_API.txt";
+string LogFilePrivatMessage = $"{DirectoryLogs}/Privat_Message.txt";
+
 Directory.CreateDirectory(DirectorySettings);
+
 if (System.IO.File.Exists($"{DirectorySettings}/Authentication.txt"))
 {
-    using (StreamReader reader = new StreamReader($"{DirectorySettings}/Authentication.txt"))
+    using (StreamReader reader = new($"{DirectorySettings}/Authentication.txt"))
     {
         string server = "";
         string database = "";
@@ -135,28 +141,18 @@ else
         "");
 }
 
-string DirectoryLogs = $"{DirectorySettings}/Logs";
-string LogFileUpdate = $"{DirectoryLogs}/Update.txt";
-string LogFileErrorTGAPI = $"{DirectoryLogs}/Telegram_API.txt";
-string LogFilePrivatMessage = $"{DirectoryLogs}/Privat_Message.txt";
 if (Logs == true)
 {
     Directory.CreateDirectory(DirectoryLogs);
-    System.IO.File.AppendAllText(LogFileUpdate, $"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начало логирования..\n");
-    System.IO.File.AppendAllText(LogFileErrorTGAPI, $"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начало логирования..\n");
-    System.IO.File.AppendAllText(LogFilePrivatMessage, $"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начало логирования..\n");
+    System.IO.File.AppendAllText(LogFileUpdate, $"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Начало логирования..\n");
+    System.IO.File.AppendAllText(LogFileErrorTGAPI, $"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Начало логирования..\n");
+    System.IO.File.AppendAllText(LogFilePrivatMessage, $"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Начало логирования..\n");
 }
+if (AutoUpdate == true) { Timer timer = new(TimerCallback, null, 0, AutoUpdateMinete * 60 * 1000); }
 
-var botClient = new TelegramBotClient(TokenTelegramAPI);
-using var cts = new CancellationTokenSource();
 Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
-// StartReceiving does not block the caller thread. Receiving is done on the ThreadPool.
-var receiverOptions = new ReceiverOptions
-{
-    AllowedUpdates = Array.Empty<UpdateType>() // receive all update types
-};
 
-MySqlConnection MySqlBase = new MySqlConnection(connStr);
+MySqlConnection MySqlBase = new(connStr);
 try
 {
     MySqlBase.Open();
@@ -169,26 +165,21 @@ catch
     Console.WriteLine($"Не удалось подключиться к БД =(");
 }
 
+var botClient = new TelegramBotClient(TokenTelegramAPI);
+using var cts = new CancellationTokenSource();
+var receiverOptions = new ReceiverOptions
+{
+    AllowedUpdates = Array.Empty<UpdateType>()
+};
 botClient.StartReceiving(HandleUpdateAsync, HandlePollingErrorAsync, receiverOptions, cts.Token);
 var me = await botClient.GetMeAsync();
-Console.WriteLine($"Вышел на смену: \"{botClient.GetMeAsync().Result.FirstName}\" @{botClient.GetMeAsync().Result.Username} | Версия бота: {version} | {DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")}");
+Console.WriteLine($"Вышел на смену: \"{botClient.GetMeAsync().Result.FirstName}\" @{botClient.GetMeAsync().Result.Username} | Версия бота: {version} | {DateTime.Now:dd.MM.yy | HH:mm:ss}");
 
-if (AutoUpdate == true)
-{
-    Timer timer = new Timer(showTime, null, 0, AutoUpdateMinete * 60 * 1000);
-}
-if (System.IO.File.Exists($"{DirectoryProg}/Update TGBotDED.zip"))
-{
-    System.IO.File.Delete($"{DirectoryProg}/Update TGBotDED.zip");
-}
-if (System.IO.File.Exists($"{DirectoryProg}/UpdaterProg.exe"))
-{
-    System.IO.File.Delete($"{DirectoryProg}/UpdaterProg.exe");
-}
+if (System.IO.File.Exists($"{DirectoryProg}/Update TGBotDED.zip")) { System.IO.File.Delete($"{DirectoryProg}/Update TGBotDED.zip"); }
+if (System.IO.File.Exists($"{DirectoryProg}/UpdaterProg.exe")) { System.IO.File.Delete($"{DirectoryProg}/UpdaterProg.exe"); }
 
 Console.ReadLine();
 cts.Cancel();
-
 
 async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
 {
@@ -202,7 +193,7 @@ async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, Cancel
     }
     if (update.Type == UpdateType.Message && update?.Message?.Photo != null)
     {
-        await HandlePhoto(botClient, update.Message);
+        await HandlePhoto(botClient, update, update.Message);
     }
     if (update.Type == UpdateType.CallbackQuery)
     {
@@ -228,7 +219,6 @@ async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, Cancel
     }
     return;
 }
-
 
 async Task HandleMessage(ITelegramBotClient botClient, Update update, Message message)
 {
@@ -292,10 +282,10 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         if (Logs == true)
         {
             string TextMes = message.Text;
-            Console.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {message.From.Id} - @{message.From.Username} | {TextMes.Replace("\n", " ")}");
-            using(var File = new StreamWriter(LogFilePrivatMessage, true))
+            Console.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | {message.From.Id} - @{message.From.Username} | {TextMes.Replace("\n", " ")}");
+            using (var File = new StreamWriter(LogFilePrivatMessage, true))
             {
-                File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {message.From.Id} - @{message.From.Username} | {TextMes.Replace("\n", " ")}");
+                File.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | {message.From.Id} - @{message.From.Username} | {TextMes.Replace("\n", " ")}");
             }
 
         }
@@ -312,7 +302,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDUser;";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 //string name = command.ExecuteScalar().ToString();
                 MySqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
@@ -345,7 +335,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDUser;";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 //string name = command.ExecuteScalar().ToString();
                 MySqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
@@ -375,7 +365,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDGroup;";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 //string name = command.ExecuteScalar().ToString();
                 MySqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
@@ -409,13 +399,13 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 try
                 {
                     string cmdsql = $"INSERT INTO BDUser (id, username, firstname, lastname) VALUES ('{message.From.Id}', '{message.From.Username}', '{message.From.FirstName}', '{message.From.LastName}');";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlCommand command = new(cmdsql, MySqlBase);
                     command.ExecuteNonQuery();
                 }
                 catch
                 {
                     string cmdsql = $"UPDATE BDUser SET username = '{message.From.Username}', firstname = '{message.From.FirstName}', lastname = '{message.From.LastName}' WHERE id = '{message.From.Id}';";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlCommand command = new(cmdsql, MySqlBase);
                     command.ExecuteNonQuery();
                 }
                 MySqlBase.Close();
@@ -440,13 +430,13 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 Console.WriteLine($"{message.From.Id} | Сбор файлов | Файлов нету");
                 return;
             }
-            DirectoryInfo dir = new DirectoryInfo(directoryUsername);
+            DirectoryInfo dir = new(directoryUsername);
             foreach (var item in dir.GetFiles())
             {
                 Console.WriteLine($"Отправлен файл: {item.Name}");
                 //await botClient.SendTextMessageAsync(message.Chat, item.Name);
-                await using Stream stream = System.IO.File.OpenRead(@$"{directoryUsername}/{item.Name.ToString()}");
-                await botClient.SendDocumentAsync(message.Chat.Id, new InputOnlineFile(stream, @$"{directoryUsername}/{item.Name.ToString()}"), disableNotification: true);
+                await using Stream stream = System.IO.File.OpenRead(@$"{directoryUsername}/{item.Name}");
+                await botClient.SendDocumentAsync(message.Chat.Id, new InputOnlineFile(stream, @$"{directoryUsername}/{item.Name}"), disableNotification: true);
             }
             await botClient.SendTextMessageAsync(message.Chat, "Это все, что у меня было 😊");
             return;
@@ -501,7 +491,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDUser SET TestMes = '0' WHERE id = '{message.From.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 await botClient.SendTextMessageAsync(message.Chat, $"Успешное отключение Вас от тестовых сообщений.\nЕсли передумаете то, введите команду /test_mes_on", disableNotification: true);
             }
@@ -519,7 +509,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDUser SET TestMes = '1' WHERE id = '{message.From.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 await botClient.SendTextMessageAsync(message.Chat, $"Успешное подключение Вас к тестовым сообщениям.\nЕсли передумаете то, введите команду /test_mes_off", disableNotification: true);
             }
@@ -589,7 +579,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         IDUser = message.ReplyToMessage.From.Id;
                     }
                     string cmdsql = $"SELECT * FROM BDUser WHERE id = '{IDUser}';";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlCommand command = new(cmdsql, MySqlBase);
                     MySqlDataReader reader = command.ExecuteReader();
                     string saveurl = "";
                     string saveurlval = "";
@@ -612,7 +602,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 {
                     MySqlBase.Open();
                     string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlCommand command = new(cmdsql, MySqlBase);
                     MySqlDataReader reader = command.ExecuteReader();
                     string Market = "";
                     string AutoCurrency = "";
@@ -693,7 +683,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         string SmileyWeather = "";
                         string url = $"https://api.openweathermap.org/data/2.5/weather?lat={Lat}&lon={Lon}&units=metric&mode=xml&appid={TokenWeather}&lang=ru";
 
-                        WebClient client = new WebClient();
+                        WebClient client = new();
                         var xml = client.DownloadString(url);
                         XDocument xdoc = XDocument.Parse(xml);
                         XElement? Temperature = xdoc.Element("current").Element("temperature");
@@ -797,297 +787,297 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 || message.Text == buttonRUBtoKRW.ToLower()
                 || message.Text == buttonRUBtoJPY.ToLower())
             {
-                    var mes = await botClient.SendTextMessageAsync(message.Chat, "Секунду, взламываю сайта ЦБ, чтобы узнать для Вас курс! 📊", disableNotification: true);
-                    try
+                var mes = await botClient.SendTextMessageAsync(message.Chat, "Секунду, взламываю сайта ЦБ, чтобы узнать для Вас курс! 📊", disableNotification: true);
+                try
+                {
+                    try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+                    string Value = "";
+                    string Icon = "";
+                    string IDCirrency = "";
+                    string Nominal = "";
+                    string Name = "";
+
+                    int ChekMes = 0;
+
+                    if (message.Text.StartsWith("/val_aud") || message.Text == buttonRUBtoAUD.ToLower())
                     {
-                        try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
-                        string Value = "";
-                        string Icon = "";
-                        string IDCirrency = "";
-                        string Nominal = "";
-                        string Name = "";
+                        Icon = "$";
+                        IDCirrency = "R01010";
+                        Name = buttonRUBtoAUD;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_azn") || message.Text == buttonRUBtoAZN.ToLower())
+                    {
+                        Icon = "₼";
+                        IDCirrency = "R01020A";
+                        Name = buttonRUBtoAZN;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_gbp") || message.Text == buttonRUBtoGBP.ToLower())
+                    {
+                        Icon = "£";
+                        IDCirrency = "R01035";
+                        Name = buttonRUBtoGBP;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_amd") || message.Text == buttonRUBtoAMD.ToLower())
+                    {
+                        Icon = "֏";
+                        IDCirrency = "R01060";
+                        Name = buttonRUBtoAMD;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_byn") || message.Text == buttonRUBtoBYN.ToLower())
+                    {
+                        Icon = "Br";
+                        IDCirrency = "R01090B";
+                        Name = buttonRUBtoBYN;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_bgn") || message.Text == buttonRUBtoBGN.ToLower())
+                    {
+                        Icon = "BGN";
+                        IDCirrency = "R01100";
+                        Name = buttonRUBtoBGN;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_brl") || message.Text == buttonRUBtoBRL.ToLower())
+                    {
+                        Icon = "R$";
+                        IDCirrency = "R01115";
+                        Name = buttonRUBtoBRL;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_huf") || message.Text == buttonRUBtoHUF.ToLower())
+                    {
+                        Icon = "F";
+                        IDCirrency = "R01135";
+                        Name = buttonRUBtoHUF;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_hkd") || message.Text == buttonRUBtoHKD.ToLower())
+                    {
+                        Icon = "HK$";
+                        IDCirrency = "R01200";
+                        Name = buttonRUBtoHKD;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_dkk") || message.Text == buttonRUBtoDKK.ToLower())
+                    {
+                        Icon = "Kr";
+                        IDCirrency = "R01215";
+                        Name = buttonRUBtoDKK;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_usd") || message.Text == buttonRUBtoUSD.ToLower())
+                    {
+                        Icon = "$";
+                        IDCirrency = "R01235";
+                        Name = buttonRUBtoUSD;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_eur") || message.Text == buttonRUBtoEUR.ToLower())
+                    {
+                        Icon = "€";
+                        IDCirrency = "R01239";
+                        Name = buttonRUBtoEUR;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_inr") || message.Text == buttonRUBtoINR.ToLower())
+                    {
+                        Icon = "₹";
+                        IDCirrency = "R01270";
+                        Name = buttonRUBtoINR;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_kzt") || message.Text == buttonRUBtoKZT.ToLower())
+                    {
+                        Icon = "₸";
+                        IDCirrency = "R01335";
+                        Name = buttonRUBtoKZT;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_cad") || message.Text == buttonRUBtoCAD.ToLower())
+                    {
+                        Icon = "$";
+                        IDCirrency = "R01350";
+                        Name = buttonRUBtoCAD;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_kgs") || message.Text == buttonRUBtoKGS.ToLower())
+                    {
+                        Icon = "с";
+                        IDCirrency = "R01370";
+                        Name = buttonRUBtoKGS;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_cny") || message.Text == buttonRUBtoCNY.ToLower())
+                    {
+                        Icon = "Y";
+                        IDCirrency = "R01375";
+                        Name = buttonRUBtoCNY;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_mdl") || message.Text == buttonRUBtoMDL.ToLower())
+                    {
+                        Icon = "L";
+                        IDCirrency = "R01500";
+                        Name = buttonRUBtoMDL;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_nok") || message.Text == buttonRUBtoNOK.ToLower())
+                    {
+                        Icon = "NKr";
+                        IDCirrency = "R01535";
+                        Name = buttonRUBtoNOK;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_pln") || message.Text == buttonRUBtoPLN.ToLower())
+                    {
+                        Icon = "zł";
+                        IDCirrency = "R01565";
+                        Name = buttonRUBtoPLN;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_ron") || message.Text == buttonRUBtoRON.ToLower())
+                    {
+                        Icon = "L";
+                        IDCirrency = "R01585F";
+                        Name = buttonRUBtoRON;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_xdr") || message.Text == buttonRUBtoXDR.ToLower())
+                    {
+                        Icon = "XDR";
+                        IDCirrency = "R01589";
+                        Name = buttonRUBtoXDR;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_sgd") || message.Text == buttonRUBtoSGD.ToLower())
+                    {
+                        Icon = "S$";
+                        IDCirrency = "R01625";
+                        Name = buttonRUBtoSGD;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_tjs") || message.Text == buttonRUBtoTJS.ToLower())
+                    {
+                        Icon = "с";
+                        IDCirrency = "R01670";
+                        Name = buttonRUBtoTJS;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_try") || message.Text == buttonRUBtoTRY.ToLower())
+                    {
+                        Icon = "₺";
+                        IDCirrency = "R01700J";
+                        Name = buttonRUBtoTRY;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_tmt") || message.Text == buttonRUBtoTMT.ToLower())
+                    {
+                        Icon = "T";
+                        IDCirrency = "R01710A";
+                        Name = buttonRUBtoTMT;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_uzs") || message.Text == buttonRUBtoUZS.ToLower())
+                    {
+                        Icon = "UZS";
+                        IDCirrency = "R01717";
+                        Name = buttonRUBtoUZS;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_uah") || message.Text == buttonRUBtoUAH.ToLower())
+                    {
+                        Icon = "₴";
+                        IDCirrency = "R01720";
+                        Name = buttonRUBtoUAH;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_czk") || message.Text == buttonRUBtoCZK.ToLower())
+                    {
+                        Icon = "Kč";
+                        IDCirrency = "R01760";
+                        Name = buttonRUBtoCZK;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_sek") || message.Text == buttonRUBtoSEK.ToLower())
+                    {
+                        Icon = "kr";
+                        IDCirrency = "R01770";
+                        Name = buttonRUBtoSEK;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_chk") || message.Text == buttonRUBtoCHF.ToLower())
+                    {
+                        Icon = "₣";
+                        IDCirrency = "R01775";
+                        Name = buttonRUBtoCHF;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_zar") || message.Text == buttonRUBtoZAR.ToLower())
+                    {
+                        Icon = "R";
+                        IDCirrency = "R01810";
+                        Name = buttonRUBtoZAR;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_krw") || message.Text == buttonRUBtoKRW.ToLower())
+                    {
+                        Icon = "₩";
+                        IDCirrency = "R01815";
+                        Name = buttonRUBtoKRW;
+                        ChekMes++;
+                    }
+                    if (message.Text.StartsWith("/val_jpy") || message.Text == buttonRUBtoJPY.ToLower())
+                    {
+                        Icon = "¥";
+                        IDCirrency = "R01820";
+                        Name = buttonRUBtoJPY;
+                        ChekMes++;
+                    }
 
-                        int ChekMes = 0;
+                    if (ChekMes > 0)
+                    {
+                        var SplitVal = message.Text.Split(' ').Last();
+                        float Mng = 1;
+                        try
+                        {
+                            Mng = Convert.ToSingle(SplitVal.Replace(",", "."));
+                        }
+                        catch { }
 
-                        if (message.Text.StartsWith("/val_aud") || message.Text == buttonRUBtoAUD.ToLower())
-                        {
-                            Icon = "$";
-                            IDCirrency = "R01010";
-                            Name = buttonRUBtoAUD;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_azn") || message.Text == buttonRUBtoAZN.ToLower())
-                        {
-                            Icon = "₼";
-                            IDCirrency = "R01020A";
-                            Name = buttonRUBtoAZN;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_gbp") || message.Text == buttonRUBtoGBP.ToLower())
-                        {
-                            Icon = "£";
-                            IDCirrency = "R01035";
-                            Name = buttonRUBtoGBP;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_amd") || message.Text == buttonRUBtoAMD.ToLower())
-                        {
-                            Icon = "֏";
-                            IDCirrency = "R01060";
-                            Name = buttonRUBtoAMD;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_byn") || message.Text == buttonRUBtoBYN.ToLower())
-                        {
-                            Icon = "Br";
-                            IDCirrency = "R01090B";
-                            Name = buttonRUBtoBYN;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_bgn") || message.Text == buttonRUBtoBGN.ToLower())
-                        {
-                            Icon = "BGN";
-                            IDCirrency = "R01100";
-                            Name = buttonRUBtoBGN;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_brl") || message.Text == buttonRUBtoBRL.ToLower())
-                        {
-                            Icon = "R$";
-                            IDCirrency = "R01115";
-                            Name = buttonRUBtoBRL;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_huf") || message.Text == buttonRUBtoHUF.ToLower())
-                        {
-                            Icon = "F";
-                            IDCirrency = "R01135";
-                            Name = buttonRUBtoHUF;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_hkd") || message.Text == buttonRUBtoHKD.ToLower())
-                        {
-                            Icon = "HK$";
-                            IDCirrency = "R01200";
-                            Name = buttonRUBtoHKD;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_dkk") || message.Text == buttonRUBtoDKK.ToLower())
-                        {
-                            Icon = "Kr";
-                            IDCirrency = "R01215";
-                            Name = buttonRUBtoDKK;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_usd") || message.Text == buttonRUBtoUSD.ToLower())
-                        {
-                            Icon = "$";
-                            IDCirrency = "R01235";
-                            Name = buttonRUBtoUSD;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_eur") || message.Text == buttonRUBtoEUR.ToLower())
-                        {
-                            Icon = "€";
-                            IDCirrency = "R01239";
-                            Name = buttonRUBtoEUR;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_inr") || message.Text == buttonRUBtoINR.ToLower())
-                        {
-                            Icon = "₹";
-                            IDCirrency = "R01270";
-                            Name = buttonRUBtoINR;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_kzt") || message.Text == buttonRUBtoKZT.ToLower())
-                        {
-                            Icon = "₸";
-                            IDCirrency = "R01335";
-                            Name = buttonRUBtoKZT;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_cad") || message.Text == buttonRUBtoCAD.ToLower())
-                        {
-                            Icon = "$";
-                            IDCirrency = "R01350";
-                            Name = buttonRUBtoCAD;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_kgs") || message.Text == buttonRUBtoKGS.ToLower())
-                        {
-                            Icon = "с";
-                            IDCirrency = "R01370";
-                            Name = buttonRUBtoKGS;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_cny") || message.Text == buttonRUBtoCNY.ToLower())
-                        {
-                            Icon = "Y";
-                            IDCirrency = "R01375";
-                            Name = buttonRUBtoCNY;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_mdl") || message.Text == buttonRUBtoMDL.ToLower())
-                        {
-                            Icon = "L";
-                            IDCirrency = "R01500";
-                            Name = buttonRUBtoMDL;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_nok") || message.Text == buttonRUBtoNOK.ToLower())
-                        {
-                            Icon = "NKr";
-                            IDCirrency = "R01535";
-                            Name = buttonRUBtoNOK;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_pln") || message.Text == buttonRUBtoPLN.ToLower())
-                        {
-                            Icon = "zł";
-                            IDCirrency = "R01565";
-                            Name = buttonRUBtoPLN;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_ron") || message.Text == buttonRUBtoRON.ToLower())
-                        {
-                            Icon = "L";
-                            IDCirrency = "R01585F";
-                            Name = buttonRUBtoRON;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_xdr") || message.Text == buttonRUBtoXDR.ToLower())
-                        {
-                            Icon = "XDR";
-                            IDCirrency = "R01589";
-                            Name = buttonRUBtoXDR;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_sgd") || message.Text == buttonRUBtoSGD.ToLower())
-                        {
-                            Icon = "S$";
-                            IDCirrency = "R01625";
-                            Name = buttonRUBtoSGD;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_tjs") || message.Text == buttonRUBtoTJS.ToLower())
-                        {
-                            Icon = "с";
-                            IDCirrency = "R01670";
-                            Name = buttonRUBtoTJS;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_try") || message.Text == buttonRUBtoTRY.ToLower())
-                        {
-                            Icon = "₺";
-                            IDCirrency = "R01700J";
-                            Name = buttonRUBtoTRY;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_tmt") || message.Text == buttonRUBtoTMT.ToLower())
-                        {
-                            Icon = "T";
-                            IDCirrency = "R01710A";
-                            Name = buttonRUBtoTMT;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_uzs") || message.Text == buttonRUBtoUZS.ToLower())
-                        {
-                            Icon = "UZS";
-                            IDCirrency = "R01717";
-                            Name = buttonRUBtoUZS;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_uah") || message.Text == buttonRUBtoUAH.ToLower())
-                        {
-                            Icon = "₴";
-                            IDCirrency = "R01720";
-                            Name = buttonRUBtoUAH;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_czk") || message.Text == buttonRUBtoCZK.ToLower())
-                        {
-                            Icon = "Kč";
-                            IDCirrency = "R01760";
-                            Name = buttonRUBtoCZK;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_sek") || message.Text == buttonRUBtoSEK.ToLower())
-                        {
-                            Icon = "kr";
-                            IDCirrency = "R01770";
-                            Name = buttonRUBtoSEK;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_chk") || message.Text == buttonRUBtoCHF.ToLower())
-                        {
-                            Icon = "₣";
-                            IDCirrency = "R01775";
-                            Name = buttonRUBtoCHF;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_zar") || message.Text == buttonRUBtoZAR.ToLower())
-                        {
-                            Icon = "R";
-                            IDCirrency = "R01810";
-                            Name = buttonRUBtoZAR;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_krw") || message.Text == buttonRUBtoKRW.ToLower())
-                        {
-                            Icon = "₩";
-                            IDCirrency = "R01815";
-                            Name = buttonRUBtoKRW;
-                            ChekMes++;
-                        }
-                        if (message.Text.StartsWith("/val_jpy") || message.Text == buttonRUBtoJPY.ToLower())
-                        {
-                            Icon = "¥";
-                            IDCirrency = "R01820";
-                            Name = buttonRUBtoJPY;
-                            ChekMes++;
-                        }
+                        WebClient client = new();
+                        var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
+                        XDocument xdoc = XDocument.Parse(xml);
+                        var el = xdoc.Element("ValCurs").Elements("Valute");
+                        Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
+                        Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
+                        Value = Value.Substring(0, Value.Length - 2);
 
-                        if (ChekMes > 0)
+                        double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
+                        int NominalCor = Convert.ToInt32(Nominal);
+                        if (NominalCor > 1)
                         {
-                            var SplitVal = message.Text.Split(' ').Last();
-                            float Mng = 1;
-                            try
-                            {
-                                Mng = Convert.ToSingle(SplitVal.Replace(",", "."));
-                            }
-                            catch { }
-
-                            WebClient client = new WebClient();
-                            var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
-                            XDocument xdoc = XDocument.Parse(xml);
-                            var el = xdoc.Element("ValCurs").Elements("Valute");
-                            Value = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Value").Value).FirstOrDefault();
-                            Nominal = el.Where(x => x.Attribute("ID").Value == IDCirrency).Select(x => x.Element("Nominal").Value).FirstOrDefault();
-                            Value = Value.Substring(0, Value.Length - 2);
-
-                            double ValueCor = Convert.ToDouble(Value.Replace(",", "."));
-                            int NominalCor = Convert.ToInt32(Nominal);
-                            if (NominalCor > 1)
-                            {
-                                ValueCor = ValueCor / NominalCor;
-                                ValueCor = Math.Round(ValueCor, 2);
-                            }
-                            ValueCor = ValueCor * Mng;
+                            ValueCor /= NominalCor;
                             ValueCor = Math.Round(ValueCor, 2);
-                            Value = Convert.ToString(ValueCor).Replace(".", ",");
-                            string CorMng = Convert.ToString(Mng).Replace(".", ",");
-                            await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"{CorMng}{Icon} = {Value}₽\n{Name}");
                         }
-                        else
-                        {
-                            await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"Такую валюту я не умею обрабатывать 😔");
-                        }
+                        ValueCor *= Mng;
+                        ValueCor = Math.Round(ValueCor, 2);
+                        Value = Convert.ToString(ValueCor).Replace(".", ",");
+                        string CorMng = Convert.ToString(Mng).Replace(".", ",");
+                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"{CorMng}{Icon} = {Value}₽\n{Name}");
                     }
-                    catch
+                    else
                     {
-                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"К сожалению произошла ошибка, попробуйте чуточку позже 😔");
+                        await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"Такую валюту я не умею обрабатывать 😔");
                     }
+                }
+                catch
+                {
+                    await botClient.EditMessageTextAsync(message.Chat, mes.MessageId, $"К сожалению произошла ошибка, попробуйте чуточку позже 😔");
+                }
                 return;
             }
         }
@@ -1143,7 +1133,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         if (message.Text.StartsWith("/bidon") || message.Text.StartsWith("ботя, где байден"))
         {
             await botClient.SendLocationAsync(message.Chat, latitude: 38.8976763f, longitude: -77.0365298f, disableNotification: true);
-            Random rnd = new Random();
+            Random rnd = new();
             var Value = rnd.Next(1, 10);
             switch (Value)
             {
@@ -1224,7 +1214,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     {
                         MySqlBase.Open();
                         string cmdsql = $"SELECT saveurl FROM BDUser WHERE id = '{message.From.Id}';";
-                        MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                        MySqlCommand command = new(cmdsql, MySqlBase);
                         IPAdr = command.ExecuteScalar().ToString();
                         MySqlBase.Close();
                     }
@@ -1239,7 +1229,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     {
                         MySqlBase.Open();
                         string cmdsql = $"SELECT saveurlval FROM BDUser WHERE id = '{message.From.Id}';";
-                        MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                        MySqlCommand command = new(cmdsql, MySqlBase);
                         ValueRepeat = command.ExecuteScalar().ToString();
                         MySqlBase.Close();
                     }
@@ -1282,7 +1272,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                     for (int i = 1; i <= ValueRepeatInt; i++)
                     {
 
-                        Ping ping = new Ping();
+                        Ping ping = new();
                         PingReply pingReply = ping.Send(IPAdr);
                         if (pingReply.Status.ToString() == "Success")
                         {
@@ -1389,14 +1379,14 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 try
                 {
                     string cmdsql = $"INSERT INTO BDUser (id, username, firstname, lastname) VALUES ('{message.From.Id}', '{message.From.Username}', '{message.From.FirstName}', '{message.From.LastName}');";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlCommand command = new(cmdsql, MySqlBase);
                     command.ExecuteNonQuery();
                     await botClient.SendTextMessageAsync(message.Chat, $"Данные по пользователю добавлены!", disableNotification: true);
                 }
                 catch
                 {
                     string cmdsql = $"UPDATE BDUser SET username = '{message.From.Username}', firstname = '{message.From.FirstName}', lastname = '{message.From.LastName}' WHERE id = '{message.From.Id}';";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlCommand command = new(cmdsql, MySqlBase);
                     command.ExecuteNonQuery();
                     await botClient.SendTextMessageAsync(message.Chat, $"Данные по пользователю актуализированы!", disableNotification: true);
                 }
@@ -1413,7 +1403,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDUser;";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 MySqlDataReader reader = command.ExecuteReader();
                 Text = $"БД Пользователей:\n" +
                     $"ID|Usename|FirstName|LastName|SaveURL|SaveURLVal|TestMes\n";
@@ -1483,7 +1473,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 {
                     MySqlBase.Open();
                     string cmdsql = $"UPDATE BDUser SET saveurl = '{url}', saveurlval = '{value}' WHERE id = '{message.From.Id}';";
-                    MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                    MySqlCommand command = new(cmdsql, MySqlBase);
                     command.ExecuteNonQuery();
                     await botClient.SendTextMessageAsync(message.Chat, $"URL \"{url}\" - сохранен!\nКоличество проверок - {value}\nЧтобы быстро пингануть, введите /ping_my", disableNotification: true);
                 }
@@ -1693,7 +1683,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDGroup SET market = '0' WHERE id = '{message.Chat.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
                 await Task.Delay(1000);
@@ -1713,7 +1703,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDGroup SET market = '1' WHERE id = '{message.Chat.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
                 await Task.Delay(1000);
@@ -1782,7 +1772,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDGroup SET auto_currency = '0' WHERE id = '{message.Chat.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
                 await Task.Delay(1000);
@@ -1808,7 +1798,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDGroup SET auto_currency = '1' WHERE id = '{message.Chat.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
                 await Task.Delay(1000);
@@ -1834,7 +1824,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDGroup SET auto_weather_loc = '0' WHERE id = '{message.Chat.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
                 await Task.Delay(1000);
@@ -1860,7 +1850,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             {
                 MySqlBase.Open();
                 string cmdsql = $"UPDATE BDGroup SET auto_weather_loc = '1' WHERE id = '{message.Chat.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 command.ExecuteNonQuery();
                 var mes = await botClient.SendTextMessageAsync(message.Chat.Id, $"✅ Настройки обновлены!", disableNotification: true);
                 await Task.Delay(1000);
@@ -1874,7 +1864,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             return;
         }
     }
-    await MessageParsing(message);
+    await ParsingAllText(message);
     MySqlBase.Close();
     return;
 }
@@ -1905,7 +1895,7 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
                     },
                 });
                 string ChoiceBot = "";
-                Random rnd = new Random();
+                Random rnd = new();
                 var Value = rnd.Next(1, 99);
 
                 if (Value <= 33) { ChoiceBot = buttonStone; }
@@ -2011,7 +2001,7 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
 
                 for (int i = 0; i < Repeat; i++)
                 {
-                    Random rnd = new Random();
+                    Random rnd = new();
                     var Value = rnd.Next(0, 100);
 
                     if (Value % 2 == 0)
@@ -2039,8 +2029,8 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
                     MesSplit = MesSplit.Replace("Орел: ", "");
                     MesSplit = MesSplit.Replace("Решка: ", "");
                     string[] V = MesSplit.Split("\n");
-                    ValueWin = ValueWin + Convert.ToInt32(V[1]);
-                    ValueLoser = ValueLoser + Convert.ToInt32(V[2]);
+                    ValueWin += Convert.ToInt32(V[1]);
+                    ValueLoser += Convert.ToInt32(V[2]);
                 }
                 TextMes = $"{TextMes}Тебе выпадает \"{ChoiceBot}\"\n\n";
 
@@ -2409,7 +2399,7 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
                     InlineKeyboardButton.WithCallbackData(text: buttonRnd1000, callbackData: "random_1000"),
                 },
             });
-                Random rnd = new Random();
+                Random rnd = new();
                 int ValueB = 10;
                 if (callbackQuery.Data == "random_100") { ValueB = 100; }
                 if (callbackQuery.Data == "random_1000") { ValueB = 1000; }
@@ -2476,11 +2466,11 @@ async Task HandleDocument(ITelegramBotClient botClient, Message message)
                 $"{autor} - этой мой разработчик, можете у него уточнить почему так..", disableNotification: true);
         }
     }
-    await MessageParsing(message);
+    await ParsingAllText(message);
     return;
 }
 
-async Task HandlePhoto(ITelegramBotClient botClient, Message message)
+async Task HandlePhoto(ITelegramBotClient botClient, Update update, Message message)
 {
     if (message.Chat.Type == ChatType.Private)
     {
@@ -2493,7 +2483,7 @@ async Task HandlePhoto(ITelegramBotClient botClient, Message message)
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDUser;";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 //string name = command.ExecuteScalar().ToString();
                 MySqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
@@ -2522,7 +2512,7 @@ async Task HandlePhoto(ITelegramBotClient botClient, Message message)
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDUser;";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 //string name = command.ExecuteScalar().ToString();
                 MySqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
@@ -2547,7 +2537,7 @@ async Task HandlePhoto(ITelegramBotClient botClient, Message message)
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDGroup;";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 //string name = command.ExecuteScalar().ToString();
                 MySqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
@@ -2568,7 +2558,7 @@ async Task HandlePhoto(ITelegramBotClient botClient, Message message)
             return;
         }
     }
-    await MessageParsing(message);
+    await ParsingAllText(message);
     return;
 }
 
@@ -2605,13 +2595,13 @@ async Task HandleMember(ITelegramBotClient botClient, Update update, Message mes
         {
             MySqlBase.Open();
             string cmdsql = $"INSERT INTO BDGroup (id, title, type) VALUES ('{ChatID}', '{ChatTitle}', '{ChatTypeS}');";
-            MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+            MySqlCommand command = new(cmdsql, MySqlBase);
             command.ExecuteNonQuery();
         }
         catch
         {
             string cmdsql = $"UPDATE BDGroup SET title = '{ChatTitle}', type = '{ChatTypeS}' WHERE id = '{ChatID}';";
-            MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+            MySqlCommand command = new(cmdsql, MySqlBase);
             command.ExecuteNonQuery();
         }
         MySqlBase.Close();
@@ -2639,7 +2629,7 @@ async Task HandleLocation(ITelegramBotClient botClient, Message message)
             {
                 MySqlBase.Open();
                 string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
-                MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+                MySqlCommand command = new(cmdsql, MySqlBase);
                 MySqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
                 {
@@ -2659,11 +2649,10 @@ async Task HandleLocation(ITelegramBotClient botClient, Message message)
                 var Lat = message.Location.Latitude;
                 var Lon = message.Location.Longitude;
                 string url = $"https://api.openweathermap.org/data/2.5/weather?lat={Lat}&lon={Lon}&units=metric&mode=xml&appid={TokenWeather}&lang=ru";
-                //https://api.openweathermap.org/data/2.5/weather?lat=36.92928&lon=30.701937&units=metric&mode=xml&appid=66c03fe8ef1ef87c9a5fb4104d848418&lang=ru
                 string Smiley = "";
                 string SmileyWeather = "";
 
-                WebClient client = new WebClient();
+                WebClient client = new();
                 var xml = client.DownloadString(url);
                 XDocument xdoc = XDocument.Parse(xml);
                 XElement? Temperature = xdoc.Element("current").Element("temperature");
@@ -2683,7 +2672,7 @@ async Task HandleLocation(ITelegramBotClient botClient, Message message)
                 XElement? Wind = xdoc.Element("current").Element("wind").Element("speed");
                 XAttribute? WindVal = Wind.Attribute("value");
 
-                var WeatherValue = WeatherVal.Value;
+                string WeatherValue = WeatherVal.Value;
                 double Temp = 0;
                 try
                 {
@@ -2712,7 +2701,7 @@ async Task HandleLocation(ITelegramBotClient botClient, Message message)
                 if (WeatherValue == "облачно с прояснениями") { SmileyWeather = "🌥"; }
                 if (WeatherValue == "пасмурно") { SmileyWeather = "☁️"; }
                 if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
-                if (WeatherValue == "небольшой проливной дождь") { SmileyWeather = "🌧"; }
+                if (WeatherValue == "небольшой проливной дождь" || WeatherValue == "сильный дождь") { SmileyWeather = "🌧"; }
                 if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
                 if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад") { SmileyWeather = "🌨"; }
                 if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
@@ -2745,7 +2734,7 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
     {
         using (var File = new StreamWriter(LogFileErrorTGAPI, true))
         {
-            File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | {ErrorMessage}");
+            File.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | {ErrorMessage}");
         }
     }
     Console.WriteLine(ErrorMessage);
@@ -2753,14 +2742,12 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
 
 }
 
-void showTime(Object obj)
+void TimerCallback(object? obj)
 {
-    if(Logs == true)
+    if (Logs == true)
     {
-        using (var File = new StreamWriter(LogFileUpdate, true))
-        {
-            File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Начинаем проверку наличия новых версий..");
-        }
+        using var File = new StreamWriter(LogFileUpdate, true);
+        File.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Начинаем проверку наличия новых версий..");
     }
     try
     {
@@ -2771,20 +2758,16 @@ void showTime(Object obj)
             {
                 if (Logs == true)
                 {
-                    using (var File = new StreamWriter(LogFileUpdate, true))
-                    {
-                        File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Вышла новая версия, пробуем скачать..");
-                    }
+                    using var File = new StreamWriter(LogFileUpdate, true);
+                    File.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Вышла новая версия, пробуем скачать..");
                 }
                 Console.WriteLine("Вышла новая версия бота! Начинаем обновление..");
                 client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/386/", DirectoryProg + @"/Update TGBotDED.zip");
                 client.DownloadFile("https://gaffer-prog.evgeny-fidel.ru/download/110/", DirectoryProg + @"/UpdaterProg.exe");
                 if (Logs == true)
                 {
-                    using (var File = new StreamWriter(LogFileUpdate, true))
-                    {
-                        File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Файлы обновления успешно скачались, пробуем обновиться..");
-                    }
+                    using var File = new StreamWriter(LogFileUpdate, true);
+                    File.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Файлы обновления успешно скачались, пробуем обновиться..");
                 }
                 Process.Start(DirectoryProg + @"/UpdaterProg.exe");
                 Environment.Exit(0);
@@ -2793,10 +2776,8 @@ void showTime(Object obj)
             {
                 if (Logs == true)
                 {
-                    using (var File = new StreamWriter(LogFileUpdate, true))
-                    {
-                        File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Новых версий нет, работаем в прежнем режиме..");
-                    }
+                    using var File = new StreamWriter(LogFileUpdate, true);
+                    File.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Новых версий нет, работаем в прежнем режиме..");
                 }
             }
         }
@@ -2805,16 +2786,13 @@ void showTime(Object obj)
     {
         if (Logs == true)
         {
-            using (var File = new StreamWriter(LogFileUpdate, true))
-            {
-                File.WriteLine($"{DateTime.Now.ToString("dd.MM.yy | HH:mm:ss")} | Произошла ошибка: {ex.Message}");
-            }
+            using var File = new StreamWriter(LogFileUpdate, true);
+            File.WriteLine($"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Произошла ошибка: {ex.Message}");
         }
     }
-    GC.Collect();
 }
 
-async Task MessageParsing(Message message)
+async Task ParsingAllText(Message message)
 {
     bool chek = false;
     try
@@ -2857,8 +2835,8 @@ async Task MessageParsing(Message message)
                         Mng = Convert.ToSingle(val.Replace(",", "."));
                     }
 
-                    if(val == "000") { continue; }
-                    
+                    if (val == "000") { continue; }
+
                     if (Text[i].StartsWith("лир"))
                     {
                         Icon = "₺";
@@ -2883,7 +2861,7 @@ async Task MessageParsing(Message message)
                     if (message.Chat.Type == ChatType.Private) { chek = true; } else { if (chekVal == true) { ChekBDAutoCurrency(); } }
                     if (chekVal == true && chek == true)
                     {
-                        WebClient client = new WebClient();
+                        WebClient client = new();
                         var xml = client.DownloadString("https://www.cbr-xml-daily.ru/daily.xml");
                         XDocument xdoc = XDocument.Parse(xml);
                         var el = xdoc.Element("ValCurs").Elements("Valute");
@@ -2895,10 +2873,10 @@ async Task MessageParsing(Message message)
                         int NominalCor = Convert.ToInt32(Nominal);
                         if (NominalCor > 1)
                         {
-                            ValueCor = ValueCor / NominalCor;
+                            ValueCor /= NominalCor;
                             ValueCor = Math.Round(ValueCor, 2);
                         }
-                        ValueCor = ValueCor * Mng;
+                        ValueCor *= Mng;
                         ValueCor = Math.Round(ValueCor, 2);
                         string CorValue = Convert.ToString(ValueCor).Replace(".", ",");
                         string CorMng = Convert.ToString(Mng).Replace(".", ",");
@@ -2928,7 +2906,7 @@ async Task MessageParsing(Message message)
         {
             MySqlBase.Open();
             string cmdsql = $"SELECT * FROM BDGroup WHERE id = '{message.Chat.Id}';";
-            MySqlCommand command = new MySqlCommand(cmdsql, MySqlBase);
+            MySqlCommand command = new(cmdsql, MySqlBase);
             MySqlDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
@@ -2941,6 +2919,7 @@ async Task MessageParsing(Message message)
         }
         catch { }
     }
+
     MySqlBase.Close();
     return;
 }
