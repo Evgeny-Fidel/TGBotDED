@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.4.1";
+var version = "0.4.2";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -534,7 +534,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             await botClient.DeleteMessageAsync(message.Chat.Id, mes.MessageId);
             return;
         }
-        if (message.Text.StartsWith("/info"))
+        if (message.Text.StartsWith("/info") || message.Text == "/i")
         {
             try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
             string TextMes = "";
@@ -624,7 +624,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             }
             catch { }
             TextMes = $"{TextMes}\n\n" +
-                $"Разработчик: {autor}\n" +
+                $"Разработчик: @evgeny_fidel\n" +
                 $"Версия бота: {version}\n";
             await botClient.SendTextMessageAsync(message.Chat, TextMes, disableNotification: true);
             return;
@@ -642,41 +642,56 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 int ChekPog = 0;
                 int WeatherAll = 1;
                 string Text = "";
-                int ChekAll = 0;
+                int MyIDSity = 0;
                 if (message.Text.StartsWith("/weather_all"))
                 {
                     WeatherAll = 3;
-                    ChekAll = 2;
+                    MyIDSity = 1;
+                }
+                if (message.Text.StartsWith("/weather_ayt_msk") || message.Text.StartsWith("/weather_ayt_im"))
+                {
+                    WeatherAll = 2;
+                    MyIDSity = 1;
                 }
                 for (int i = 0; i < WeatherAll; i++)
                 {
-                    if (message.Text.StartsWith("/weather_moscow") || ChekAll == 4)
-                    {
-                        Country = "🇷🇺";
-                        City = "Москва";
-                        Lat = "55.75";
-                        Lon = "37.61";
-                        ChekPog++;
-                        ChekAll++;
-                    }
-                    if (message.Text.StartsWith("/weather_im") || ChekAll == 3)
-                    {
-                        Country = "🇷🇺";
-                        City = "Императорские Мытищи";
-                        Lat = "55.95";
-                        Lon = "37.68";
-                        ChekPog++;
-                        ChekAll++;
-                    }
-                    if (message.Text.StartsWith("/weather_antalya") || ChekAll == 2)
+                    if (message.Text.StartsWith("/weather_antalya") || MyIDSity == 1)
                     {
                         Country = "🇹🇷";
                         City = "Анталия";
                         Lat = "36.9293";
                         Lon = "30.7019";
                         ChekPog++;
-                        ChekAll++;
                     }
+                    if (message.Text.StartsWith("/weather_im") || MyIDSity == 2)
+                    {
+                        Country = "🇷🇺";
+                        City = "Императорские Мытищи";
+                        Lat = "55.95";
+                        Lon = "37.68";
+                        ChekPog++;
+                    }
+                    if (message.Text.StartsWith("/weather_moscow") || MyIDSity == 3)
+                    {
+                        Country = "🇷🇺";
+                        City = "Москва";
+                        Lat = "55.75";
+                        Lon = "37.61";
+                        ChekPog++;
+                    }
+                    if (message.Text.StartsWith("/weather_all"))
+                    {
+                        MyIDSity++;
+                    }
+                    if (message.Text.StartsWith("/weather_ayt_msk"))
+                    {
+                        MyIDSity = 3;
+                    }
+                    if (message.Text.StartsWith("/weather_ayt_im"))
+                    {
+                        MyIDSity = 2;
+                    }
+
                     if (ChekPog > 0)
                     {
                         string Smiley = "";
@@ -706,15 +721,22 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             Temp = 0;
                         }
 
-                        if (Temp <= -15) { Smiley = "🥶"; }
+                        if (Temp <= -30) { Smiley = "🥶🥶🥶"; }
+                        if (Temp > -30 && Temp <= -25) { Smiley = "🥶🥶"; }
+                        if (Temp > -25 && Temp <= -20) { Smiley = "🥶"; }
+                        if (Temp > -20 && Temp <= -15) { Smiley = "😫"; }
                         if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
                         if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
                         if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
                         if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
-                        if (Temp > 5 && Temp <= 10) { Smiley = "😏"; }
-                        if (Temp > 10 && Temp <= 20) { Smiley = "😌"; }
-                        if (Temp > 20 && Temp <= 25) { Smiley = "☺️"; }
-                        if (Temp > 25) { Smiley = "🥵"; }
+                        if (Temp > 5 && Temp <= 10) { Smiley = "😐"; }
+                        if (Temp > 10 && Temp <= 15) { Smiley = "😏"; }
+                        if (Temp > 15 && Temp <= 20) { Smiley = "😌"; }
+                        if (Temp > 20 && Temp <= 25) { Smiley = "😊"; }
+                        if (Temp > 25 && Temp <= 30) { Smiley = "☺️"; }
+                        if (Temp > 30 && Temp <= 35) { Smiley = "🥵"; }
+                        if (Temp > 35 && Temp <= 40) { Smiley = "🥵🥵"; }
+                        if (Temp > 40) { Smiley = "🥵🥵🥵"; }
 
                         if (WeatherValue == "ясно") { SmileyWeather = "☀️"; }
                         if (WeatherValue == "небольшая облачность" || WeatherValue == "переменная облачность") { SmileyWeather = "🌤"; }
@@ -723,7 +745,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                         if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
                         if (WeatherValue == "небольшой проливной дождь" || WeatherValue == "сильный дождь") { SmileyWeather = "🌧"; }
                         if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
-                        if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад") { SmileyWeather = "🌨"; }
+                        if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад" || WeatherValue == "небольшой снег с дождём") { SmileyWeather = "🌨"; }
                         if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
                         if (WeatherValue == "туман" || WeatherValue == "плотный туман") { SmileyWeather = "🌫"; }
 
@@ -1368,6 +1390,22 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 },
             });
             var mes = await botClient.SendTextMessageAsync(message.Chat.Id, "Случайное число. Выберите диапозон.", disableNotification: true, replyMarkup: inlineKeyboard);
+            return;
+        }
+        if (message.Text.StartsWith("/delete_message") || message.Text == "/d")
+        {
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            ChatMember chatMember = await botClient.GetChatMemberAsync(message.Chat.Id, message.ReplyToMessage.From.Id);
+            ChatMember chatMemberYou = await botClient.GetChatMemberAsync(message.Chat.Id, message.From.Id);
+            if (message.ReplyToMessage == null && chatMemberYou.Status != ChatMemberStatus.Administrator && chatMemberYou.Status != ChatMemberStatus.Creator)
+            {
+                return;
+            }
+            /*if (chatMember.Status == ChatMemberStatus.Creator || chatMember.Status == ChatMemberStatus.Administrator)
+            {
+                return;
+            }*/
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.ReplyToMessage.MessageId); } catch { }
             return;
         }
 
@@ -2686,15 +2724,22 @@ async Task HandleLocation(ITelegramBotClient botClient, Message message)
                     Temp = 0;
                 }
 
-                if (Temp <= -15) { Smiley = "🥶"; }
+                if (Temp <= -30) { Smiley = "🥶🥶🥶"; }
+                if (Temp > -30 && Temp <= -25) { Smiley = "🥶🥶"; }
+                if (Temp > -25 && Temp <= -20) { Smiley = "🥶"; }
+                if (Temp > -20 && Temp <= -15) { Smiley = "😫"; }
                 if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
                 if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
                 if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
                 if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
-                if (Temp > 5 && Temp <= 10) { Smiley = "😏"; }
-                if (Temp > 10 && Temp <= 20) { Smiley = "😌"; }
-                if (Temp > 20 && Temp <= 25) { Smiley = "☺️"; }
-                if (Temp > 25) { Smiley = "🥵"; }
+                if (Temp > 5 && Temp <= 10) { Smiley = "😐"; }
+                if (Temp > 10 && Temp <= 15) { Smiley = "😏"; }
+                if (Temp > 15 && Temp <= 20) { Smiley = "😌"; }
+                if (Temp > 20 && Temp <= 25) { Smiley = "😊"; }
+                if (Temp > 25 && Temp <= 30) { Smiley = "☺️"; }
+                if (Temp > 30 && Temp <= 35) { Smiley = "🥵"; }
+                if (Temp > 35 && Temp <= 40) { Smiley = "🥵🥵"; }
+                if (Temp > 40) { Smiley = "🥵🥵🥵"; }
 
                 if (WeatherValue == "ясно") { SmileyWeather = "☀️"; }
                 if (WeatherValue == "небольшая облачность" || WeatherValue == "переменная облачность") { SmileyWeather = "🌤"; }
@@ -2703,7 +2748,7 @@ async Task HandleLocation(ITelegramBotClient botClient, Message message)
                 if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
                 if (WeatherValue == "небольшой проливной дождь" || WeatherValue == "сильный дождь") { SmileyWeather = "🌧"; }
                 if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
-                if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад") { SmileyWeather = "🌨"; }
+                if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад" || WeatherValue == "небольшой снег с дождём") { SmileyWeather = "🌨"; }
                 if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
                 if (WeatherValue == "туман" || WeatherValue == "плотный туман") { SmileyWeather = "🌫"; }
 
@@ -2837,7 +2882,7 @@ async Task ParsingAllText(Message message)
 
                     if (val == "000") { continue; }
 
-                    if (Text[i].StartsWith("лир"))
+                    if (Text[i].StartsWith("лир") || Text[i] == "tl" || Text[i] == "тл")
                     {
                         Icon = "₺";
                         IDCirrency = "R01700J";
