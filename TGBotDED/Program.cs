@@ -13,7 +13,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
-var version = "0.4.2";
+var version = "0.4.3";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -721,39 +721,10 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                             Temp = 0;
                         }
 
-                        if (Temp <= -30) { Smiley = "🥶🥶🥶"; }
-                        if (Temp > -30 && Temp <= -25) { Smiley = "🥶🥶"; }
-                        if (Temp > -25 && Temp <= -20) { Smiley = "🥶"; }
-                        if (Temp > -20 && Temp <= -15) { Smiley = "😫"; }
-                        if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
-                        if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
-                        if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
-                        if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
-                        if (Temp > 5 && Temp <= 10) { Smiley = "😐"; }
-                        if (Temp > 10 && Temp <= 15) { Smiley = "😏"; }
-                        if (Temp > 15 && Temp <= 20) { Smiley = "😌"; }
-                        if (Temp > 20 && Temp <= 25) { Smiley = "😊"; }
-                        if (Temp > 25 && Temp <= 30) { Smiley = "☺️"; }
-                        if (Temp > 30 && Temp <= 35) { Smiley = "🥵"; }
-                        if (Temp > 35 && Temp <= 40) { Smiley = "🥵🥵"; }
-                        if (Temp > 40) { Smiley = "🥵🥵🥵"; }
-
-                        if (WeatherValue == "ясно") { SmileyWeather = "☀️"; }
-                        if (WeatherValue == "небольшая облачность" || WeatherValue == "переменная облачность") { SmileyWeather = "🌤"; }
-                        if (WeatherValue == "облачно с прояснениями") { SmileyWeather = "🌥"; }
-                        if (WeatherValue == "пасмурно") { SmileyWeather = "☁️"; }
-                        if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
-                        if (WeatherValue == "небольшой проливной дождь" || WeatherValue == "сильный дождь") { SmileyWeather = "🌧"; }
-                        if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
-                        if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад" || WeatherValue == "небольшой снег с дождём") { SmileyWeather = "🌨"; }
-                        if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
-                        if (WeatherValue == "туман" || WeatherValue == "плотный туман") { SmileyWeather = "🌫"; }
-
-                        if (SmileyWeather == "") { SmileyWeather = "❔"; }
+                        WeatherSmileAll(Temp, ref Smiley, WeatherValue, ref SmileyWeather);
 
                         try { WeatherValue = WeatherValue.Substring(0, 1).ToUpper() + WeatherValue.Substring(1); } catch { }
                         Text = $"{Text}\n\n{Country} {City}: {Temp}°C {Smiley}\n{SmileyWeather} {WeatherValue}";
-
                     }
                     else
                     {
@@ -2724,35 +2695,7 @@ async Task HandleLocation(ITelegramBotClient botClient, Message message)
                     Temp = 0;
                 }
 
-                if (Temp <= -30) { Smiley = "🥶🥶🥶"; }
-                if (Temp > -30 && Temp <= -25) { Smiley = "🥶🥶"; }
-                if (Temp > -25 && Temp <= -20) { Smiley = "🥶"; }
-                if (Temp > -20 && Temp <= -15) { Smiley = "😫"; }
-                if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
-                if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
-                if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
-                if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
-                if (Temp > 5 && Temp <= 10) { Smiley = "😐"; }
-                if (Temp > 10 && Temp <= 15) { Smiley = "😏"; }
-                if (Temp > 15 && Temp <= 20) { Smiley = "😌"; }
-                if (Temp > 20 && Temp <= 25) { Smiley = "😊"; }
-                if (Temp > 25 && Temp <= 30) { Smiley = "☺️"; }
-                if (Temp > 30 && Temp <= 35) { Smiley = "🥵"; }
-                if (Temp > 35 && Temp <= 40) { Smiley = "🥵🥵"; }
-                if (Temp > 40) { Smiley = "🥵🥵🥵"; }
-
-                if (WeatherValue == "ясно") { SmileyWeather = "☀️"; }
-                if (WeatherValue == "небольшая облачность" || WeatherValue == "переменная облачность") { SmileyWeather = "🌤"; }
-                if (WeatherValue == "облачно с прояснениями") { SmileyWeather = "🌥"; }
-                if (WeatherValue == "пасмурно") { SmileyWeather = "☁️"; }
-                if (WeatherValue == "небольшой дождь") { SmileyWeather = "🌦"; }
-                if (WeatherValue == "небольшой проливной дождь" || WeatherValue == "сильный дождь") { SmileyWeather = "🌧"; }
-                if (WeatherValue == "гроза" || WeatherValue == "гроза с дождём" || WeatherValue == "гроза с небольшим дождём" || WeatherValue == "гроза с сильным дождём") { SmileyWeather = "⛈"; }
-                if (WeatherValue == "небольшой снег" || WeatherValue == "небольшой снегопад" || WeatherValue == "небольшой снег с дождём") { SmileyWeather = "🌨"; }
-                if (WeatherValue == "сильный снег" || WeatherValue == "снегопад" || WeatherValue == "снег") { SmileyWeather = "❄️"; }
-                if (WeatherValue == "туман" || WeatherValue == "плотный туман") { SmileyWeather = "🌫"; }
-
-                if (SmileyWeather == "") { SmileyWeather = "❔"; }
+                WeatherSmileAll(Temp, ref Smiley, WeatherValue, ref SmileyWeather);
 
                 try { WeatherValue = WeatherValue.Substring(0, 1).ToUpper() + WeatherValue.Substring(1); } catch { }
                 string Text = $"{Smiley} В данном районе: {Temp}°C\n💦 Влажность: {HumidityVal.Value}%\n🧭 Давление: {PressureValue} мм рт. ст.\n💨 Скорость ветра: {WindVal.Value} м/с\n{SmileyWeather} {WeatherValue}";
@@ -2967,4 +2910,57 @@ async Task ParsingAllText(Message message)
 
     MySqlBase.Close();
     return;
+}
+
+ void WeatherSmileAll(double Temp, ref string Smiley, string WeatherValue, ref string SmileyWeather)
+{
+    if (Temp <= -30) { Smiley = "🥶🥶🥶"; }
+    if (Temp > -30 && Temp <= -25) { Smiley = "🥶🥶"; }
+    if (Temp > -25 && Temp <= -20) { Smiley = "🥶"; }
+    if (Temp > -20 && Temp <= -15) { Smiley = "😫"; }
+    if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
+    if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
+    if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
+    if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
+    if (Temp > 5 && Temp <= 10) { Smiley = "😐"; }
+    if (Temp > 10 && Temp <= 15) { Smiley = "😏"; }
+    if (Temp > 15 && Temp <= 20) { Smiley = "😌"; }
+    if (Temp > 20 && Temp <= 25) { Smiley = "😊"; }
+    if (Temp > 25 && Temp <= 30) { Smiley = "☺️"; }
+    if (Temp > 30 && Temp <= 35) { Smiley = "🥵"; }
+    if (Temp > 35 && Temp <= 40) { Smiley = "🥵🥵"; }
+    if (Temp > 40) { Smiley = "🥵🥵🥵"; }
+
+    var weatherEmoji = new Dictionary<string, string>
+                {
+                    {"ясно", "☀️"},
+                    {"небольшая облачность", "🌤"},
+                    {"переменная облачность", "🌤"},
+                    {"облачно с прояснениями", "🌥"},
+                    {"пасмурно", "☁️"},
+                    {"небольшой дождь", "🌦"},
+                    {"небольшой проливной дождь", "🌧"},
+                    {"сильный дождь", "🌧"},
+                    {"гроза", "⛈"},
+                    {"гроза с дождём", "⛈"},
+                    {"гроза с небольшим дождём", "⛈"},
+                    {"гроза с сильным дождём", "⛈"},
+                    {"небольшой снег", "🌨"},
+                    {"небольшой снегопад", "🌨"},
+                    {"небольшой снег с дождём", "🌨"},
+                    {"сильный снег", "❄️"},
+                    {"снегопад", "❄️"},
+                    {"снег", "❄️"},
+                    {"туман", "🌫"},
+                    {"плотный туман", "🌫"},
+                };
+    string smileyWeather;
+    if (weatherEmoji.TryGetValue(WeatherValue, out smileyWeather))
+    {
+        SmileyWeather = smileyWeather;
+    }
+    else
+    {
+        SmileyWeather = "❔";
+    }
 }
