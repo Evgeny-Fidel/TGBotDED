@@ -14,7 +14,7 @@ using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 using static System.Net.Mime.MediaTypeNames;
 
-string version = "0.4.4";
+string version = "0.4.5";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -1371,18 +1371,17 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         }
         if (message.Text.StartsWith("/delete_message") || message.Text == "/d")
         {
-            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
-            ChatMember chatMember = await botClient.GetChatMemberAsync(message.Chat.Id, message.ReplyToMessage.From.Id);
-            ChatMember chatMemberYou = await botClient.GetChatMemberAsync(message.Chat.Id, message.From.Id);
-            if (message.ReplyToMessage == null && chatMemberYou.Status != ChatMemberStatus.Administrator && chatMemberYou.Status != ChatMemberStatus.Creator)
+            try
             {
-                return;
+                try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+                ChatMember chatMemberYou = await botClient.GetChatMemberAsync(message.Chat.Id, message.From.Id);
+                if (message.ReplyToMessage == null && chatMemberYou.Status != ChatMemberStatus.Administrator && chatMemberYou.Status != ChatMemberStatus.Creator)
+                {
+                    return;
+                }
+                try { await botClient.DeleteMessageAsync(message.Chat.Id, message.ReplyToMessage.MessageId); } catch { }
             }
-            /*if (chatMember.Status == ChatMemberStatus.Creator || chatMember.Status == ChatMemberStatus.Administrator)
-            {
-                return;
-            }*/
-            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.ReplyToMessage.MessageId); } catch { }
+            catch { }
             return;
         }
 
