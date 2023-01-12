@@ -12,8 +12,9 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
+using static System.Net.Mime.MediaTypeNames;
 
-var version = "0.4.3";
+string version = "0.4.4";
 var autor = "";
 string TokenTelegramAPI = "";
 string TokenWeather = "";
@@ -148,7 +149,12 @@ if (Logs == true)
     System.IO.File.AppendAllText(LogFileErrorTGAPI, $"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Начало логирования..\n");
     System.IO.File.AppendAllText(LogFilePrivatMessage, $"{DateTime.Now:dd.MM.yy | HH:mm:ss} | Начало логирования..\n");
 }
-if (AutoUpdate == true) { Timer timer = new(TimerCallback, null, 0, AutoUpdateMinete * 60 * 1000); }
+if (AutoUpdate == true) 
+{
+    //Timer timer = new(TimerCallback, null, 0, AutoUpdateMinete * 60 * 1000);
+    TimerCallback callback = new(PrintTime);
+    Timer timer = new(callback, null, 0, AutoUpdateMinete * 60 * 1000);
+}
 
 Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
 
@@ -1406,7 +1412,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
         }
         if (message.Text.StartsWith("/bd_show"))
         {
-            //try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
             string Text = "";
             try
             {
@@ -1512,9 +1518,11 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 $"/weather_moscow - погода в Москве;\n" +
                 $"/weather_im - погода в ИМ;\n" +
                 $"/weather_antalya - погода в Анталии;\n" +
+                $"/setting_weather - показать настройки смайликов;\n" +
                 $"\n" +
                 $"/keyboard_valut - клавиатура валют;\n" +
                 $"/delete_keyboard - заблокировать клавиатуру;\n" +
+                $"/delete_message или /d - удалить любое сообщение;\n" +
                 $"\n" +
                 $"/game_one - игра с ботом №1;\n" +
                 $"/game_two - игра с ботом №2;\n" +
@@ -1527,7 +1535,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
                 $"/ticket_svo_try - авиабилеты в Анталию;\n" +
                 $"/bidon - где Байден!?;\n" +
                 $"/random - случайные числа;\n" +
-                $"/info - полная информация по всему;\n" +
+                $"/info или /i - полная информация по всему;\n" +
                 $"/update_user - обновить данные пользователя в БД;\n" +
                 $"/update_group - обновить данные группы в БД;\n" +
                 $"/val_usd - курс валюты;\n" +
@@ -1541,6 +1549,21 @@ async Task HandleMessage(ITelegramBotClient botClient, Update update, Message me
             return;
         }
 
+        if (message.Text.StartsWith("/setting_weather"))
+        {
+            try { await botClient.DeleteMessageAsync(message.Chat.Id, message.MessageId); } catch { }
+            string Smiley = "";
+            string WeatherValue = "All";
+            string SmileyWeather = "";
+            string Mes = "Настройки температуры:\n";
+            for(double Temp = -30; Temp <= 45; Temp += 5)
+            {
+                WeatherSmileAll(Temp, ref Smiley, WeatherValue, ref SmileyWeather);
+                Mes += $"{Smiley} {Temp}°C\n";
+            }
+            await botClient.SendTextMessageAsync(message.Chat.Id, $"{Mes}\nНастройки погодных условий:\n{SmileyWeather}", disableNotification: true);
+            return;
+        }
     }
     // Ниже только для групп и супергрупп
     if (message.Chat.Type == ChatType.Group || message.Chat.Type == ChatType.Supergroup)
@@ -2730,7 +2753,7 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
 
 }
 
-void TimerCallback(object? obj)
+void PrintTime(object? state)
 {
     if (Logs == true)
     {
@@ -2915,21 +2938,21 @@ async Task ParsingAllText(Message message)
  void WeatherSmileAll(double Temp, ref string Smiley, string WeatherValue, ref string SmileyWeather)
 {
     if (Temp <= -30) { Smiley = "🥶🥶🥶"; }
-    if (Temp > -30 && Temp <= -25) { Smiley = "🥶🥶"; }
-    if (Temp > -25 && Temp <= -20) { Smiley = "🥶"; }
-    if (Temp > -20 && Temp <= -15) { Smiley = "😫"; }
-    if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
-    if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
-    if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
-    if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
-    if (Temp > 5 && Temp <= 10) { Smiley = "😐"; }
-    if (Temp > 10 && Temp <= 15) { Smiley = "😏"; }
-    if (Temp > 15 && Temp <= 20) { Smiley = "😌"; }
-    if (Temp > 20 && Temp <= 25) { Smiley = "😊"; }
-    if (Temp > 25 && Temp <= 30) { Smiley = "☺️"; }
-    if (Temp > 30 && Temp <= 35) { Smiley = "🥵"; }
-    if (Temp > 35 && Temp <= 40) { Smiley = "🥵🥵"; }
-    if (Temp > 40) { Smiley = "🥵🥵🥵"; }
+    else if (Temp > -30 && Temp <= -25) { Smiley = "🥶🥶"; }
+    else if (Temp > -25 && Temp <= -20) { Smiley = "🥶"; }
+    else if (Temp > -20 && Temp <= -15) { Smiley = "😫"; }
+    else if (Temp > -15 && Temp <= -10) { Smiley = "😖"; }
+    else if (Temp > -10 && Temp <= -5) { Smiley = "😣"; }
+    else if (Temp > -5 && Temp <= 0) { Smiley = "😬"; }
+    else if (Temp > 0 && Temp <= 5) { Smiley = "😕"; }
+    else if (Temp > 5 && Temp <= 10) { Smiley = "😐"; }
+    else if (Temp > 10 && Temp <= 15) { Smiley = "😏"; }
+    else if (Temp > 15 && Temp <= 20) { Smiley = "😌"; }
+    else if (Temp > 20 && Temp <= 25) { Smiley = "😊"; }
+    else if (Temp > 25 && Temp <= 30) { Smiley = "☺️"; }
+    else if (Temp > 30 && Temp <= 35) { Smiley = "🥵"; }
+    else if (Temp > 35 && Temp <= 40) { Smiley = "🥵🥵"; }
+    else if (Temp > 40) { Smiley = "🥵🥵🥵"; }
 
     var weatherEmoji = new Dictionary<string, string>
                 {
@@ -2953,14 +2976,26 @@ async Task ParsingAllText(Message message)
                     {"снег", "❄️"},
                     {"туман", "🌫"},
                     {"плотный туман", "🌫"},
+                    {"торнадо","🌪" },
                 };
     string smileyWeather;
-    if (weatherEmoji.TryGetValue(WeatherValue, out smileyWeather))
+    if (WeatherValue == "All")
     {
-        SmileyWeather = smileyWeather;
+        SmileyWeather = "";
+        foreach (var item in weatherEmoji)
+        {
+            SmileyWeather += $"{item.Value} {item.Key}\n";
+        }
     }
     else
     {
-        SmileyWeather = "❔";
+        if (weatherEmoji.TryGetValue(WeatherValue, out smileyWeather))
+        {
+            SmileyWeather = smileyWeather;
+        }
+        else
+        {
+            SmileyWeather = "❔";
+        }
     }
 }
